@@ -12,6 +12,11 @@ export default function DashboardPage() {
   const { user, token, isAuthenticated, logout } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -42,6 +47,35 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  // Filter and search transactions
+  const filteredTransactions = transactions.filter((transaction) => {
+    // Type filter
+    if (filterType !== 'all' && transaction.type !== filterType) {
+      return false;
+    }
+
+    // Status filter
+    if (filterStatus !== 'all' && transaction.status !== filterStatus) {
+      return false;
+    }
+
+    // Search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchDescription = transaction.description?.toLowerCase().includes(query);
+      const matchAmount = transaction.amount.toString().includes(query);
+      const matchType = transaction.type.toLowerCase().includes(query);
+      return matchDescription || matchAmount || matchType;
+    }
+
+    return true;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
 
   const vipLevelColors = {
     bronze: 'from-orange-600 to-orange-800',
@@ -168,7 +202,7 @@ export default function DashboardPage() {
         {/* Recent Transactions */}
         <div className="bg-gray-800/50 backdrop-blur-lg border border-purple-500/20 rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">Recent Transactions</h2>
+            <h2 className="text-2xl font-bold text-white">Transactions</h2>
             <button
               onClick={logout}
               className="px-4 py-2 bg-red-500/20 text-red-300 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all"
@@ -177,27 +211,94 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {transactions.length === 0 ? (
+          {/* Filters and Search */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {/* Type Filter */}
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Filter by Type</label>
+              <select
+                value={filterType}
+                onChange={(e) => {
+                  setFilterType(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+              >
+                <option value="all">All Types</option>
+                <option value="deposit">Deposit</option>
+                <option value="withdrawal">Withdrawal</option>
+                <option value="bet">Bet</option>
+                <option value="win">Win</option>
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Filter by Status</label>
+              <select
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+              >
+                <option value="all">All Statuses</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
+
+            {/* Search */}
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Search</label>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search transactions..."
+                className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+          </div>
+
+          {/* Results Summary */}
+          <div className="text-sm text-gray-400 mb-4">
+            Showing {paginatedTransactions.length} of {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
+          </div>
+
+          {filteredTransactions.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-400">No transactions yet</p>
-              <Link href="/deposit" className="text-yellow-400 hover:text-yellow-300 mt-2 inline-block">
-                Make your first deposit →
-              </Link>
+              <p className="text-gray-400">
+                {transactions.length === 0 
+                  ? 'No transactions yet'
+                  : 'No transactions match your filters'}
+              </p>
+              {transactions.length === 0 && (
+                <Link href="/deposit" className="text-yellow-400 hover:text-yellow-300 mt-2 inline-block">
+                  Make your first deposit →
+                </Link>
+              )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 text-gray-300">Type</th>
-                    <th className="text-left py-3 px-4 text-gray-300">Amount</th>
-                    <th className="text-left py-3 px-4 text-gray-300">Status</th>
-                    <th className="text-left py-3 px-4 text-gray-300">Date</th>
-                    <th className="text-left py-3 px-4 text-gray-300">Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.slice(0, 10).map((transaction) => (
+            <div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-700">
+                      <th className="text-left py-3 px-4 text-gray-300">Type</th>
+                      <th className="text-left py-3 px-4 text-gray-300">Amount</th>
+                      <th className="text-left py-3 px-4 text-gray-300">Status</th>
+                      <th className="text-left py-3 px-4 text-gray-300">Date</th>
+                      <th className="text-left py-3 px-4 text-gray-300">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedTransactions.map((transaction) => (
                     <tr key={transaction._id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
                       <td className="py-3 px-4">
                         <span className={`capitalize font-medium ${
@@ -232,6 +333,44 @@ export default function DashboardPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  ← Previous
+                </button>
+                
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-2 rounded-lg transition-all ${
+                        currentPage === page
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
             </div>
           )}
         </div>
