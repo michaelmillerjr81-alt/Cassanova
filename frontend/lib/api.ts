@@ -27,6 +27,38 @@ export const api = {
       });
       return response.json();
     },
+
+    verifyEmail: async (token: string) => {
+      const response = await fetch(`${API_BASE_URL}/auth/verify/${token}`);
+      return response.json();
+    },
+
+    resendVerification: async (email: string) => {
+      const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      return response.json();
+    },
+
+    forgotPassword: async (email: string) => {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      return response.json();
+    },
+
+    resetPassword: async (token: string, newPassword: string) => {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword }),
+      });
+      return response.json();
+    },
   },
 
   // Games endpoints
@@ -101,6 +133,18 @@ export const api = {
     getProfile: async (token: string) => {
       const response = await fetch(`${API_BASE_URL}/users/profile`, {
         headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.json();
+    },
+
+    toggleFavorite: async (token: string, gameId: string) => {
+      const response = await fetch(`${API_BASE_URL}/users/favorites`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ gameId }),
       });
       return response.json();
     },

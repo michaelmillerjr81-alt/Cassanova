@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -15,6 +16,16 @@ export default function LoginPage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showVerificationNotice, setShowVerificationNotice] = useState(false);
+
+  useEffect(() => {
+    // Check if user just registered
+    const registered = searchParams.get('registered');
+    const verify = searchParams.get('verify');
+    if (registered === 'true' && verify === 'pending') {
+      setShowVerificationNotice(true);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +61,16 @@ export default function LoginPage() {
             <h1 className="text-4xl font-bold text-white mb-2">Welcome Back!</h1>
             <p className="text-gray-300">Login to your Cassanova account</p>
           </div>
+
+          {/* Verification Notice */}
+          {showVerificationNotice && (
+            <div className="bg-blue-500/20 border border-blue-500 text-blue-200 px-4 py-3 rounded-lg mb-6">
+              <p className="font-semibold mb-1">Registration Successful!</p>
+              <p className="text-sm">
+                Please check your email to verify your account. You may need to check your spam folder.
+              </p>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
@@ -143,5 +164,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 py-16 px-4 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

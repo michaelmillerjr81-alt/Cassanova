@@ -47,7 +47,8 @@ export default function RegisterPage() {
       });
 
       if (response.userId) {
-        router.push('/login?registered=true');
+        // Show success message and redirect to a verification pending page
+        router.push('/login?registered=true&verify=pending');
       } else {
         setError(response.message || 'Registration failed');
       }

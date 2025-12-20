@@ -18,6 +18,8 @@ export interface IUser extends Document {
   bonusBalance: number;
   isVerified: boolean;
   verificationToken?: string;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
   kycStatus: 'pending' | 'verified' | 'rejected';
   kycDocuments?: string[];
   vipLevel: 'bronze' | 'silver' | 'gold' | 'platinum';
@@ -59,6 +61,8 @@ const UserSchema: Schema = new Schema(
     bonusBalance: { type: Number, default: 0 },
     isVerified: { type: Boolean, default: false },
     verificationToken: { type: String },
+    passwordResetToken: { type: String },
+    passwordResetExpires: { type: Date },
     kycStatus: { 
       type: String, 
       enum: ['pending', 'verified', 'rejected'], 
