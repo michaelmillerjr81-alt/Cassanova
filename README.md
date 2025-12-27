@@ -43,10 +43,11 @@
 - **JWT Authentication**: Secure user authentication and session management
 - **Email Verification**: Complete email verification flow with resend functionality
 - **Password Reset**: Forgot password and reset password functionality
+- **Two-Factor Authentication**: TOTP-based 2FA with QR code setup and backup codes
 - **Protected Routes**: Automatic redirects for unauthorized access
 - **Password Security**: bcryptjs password hashing
 - **Session Persistence**: Secure token storage with automatic renewal
-- **KYC Verification**: Required checks for withdrawals
+- **KYC Verification**: Document upload interface with status tracking
 
 ### 💰 Financial Management
 - **Multi-Payment Deposit**: Support for cards, crypto, bank transfers, and e-wallets
@@ -217,11 +218,15 @@ Cassanova/
 
 ### Authentication
 - `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
+- `POST /api/auth/login` - User login (supports 2FA)
 - `GET /api/auth/verify/:token` - Email verification
 - `POST /api/auth/resend-verification` - Resend verification email
 - `POST /api/auth/forgot-password` - Request password reset
 - `POST /api/auth/reset-password` - Reset password with token
+- `POST /api/auth/2fa/setup` - Setup two-factor authentication
+- `POST /api/auth/2fa/verify` - Verify and enable 2FA
+- `POST /api/auth/2fa/disable` - Disable two-factor authentication
+- `GET /api/auth/2fa/status` - Get 2FA status
 
 ### Games
 - `GET /api/games` - List all games (with filters)
@@ -234,6 +239,8 @@ Cassanova/
 - `PUT /api/users/profile` - Update profile
 - `PUT /api/users/responsible-gaming` - Update gaming limits
 - `POST /api/users/favorites` - Toggle favorite game
+- `POST /api/users/kyc/upload` - Upload KYC document
+- `GET /api/users/kyc/documents` - Get KYC documents
 
 ### Promotions
 - `GET /api/promotions` - List all promotions
@@ -263,8 +270,8 @@ For complete API documentation, see [API_REFERENCE.md](docs/API_REFERENCE.md).
 ### Protected Routes (Require Authentication)
 - `/dashboard` - User dashboard with account overview, transaction filtering, and search
 - `/favorites` - View and manage favorite games
-- `/deposit` - Deposit funds with multiple payment methods
-- `/withdraw` - Withdraw funds with KYC verification
+- `/kyc` - KYC document upload and verification
+- `/settings` - Security settings and 2FA management
 - `/deposit` - Deposit funds with multiple payment methods
 - `/withdraw` - Withdraw funds with KYC verification
 
@@ -336,8 +343,8 @@ We welcome contributions! Please see our [Contributing Guidelines](docs/CONTRIBU
 - [x] Password reset functionality
 - [x] Transaction filtering and search
 - [x] Favorite games management UI (frontend)
-- [ ] KYC document upload interface (frontend)
-- [ ] Two-factor authentication
+- [x] KYC document upload interface (frontend)
+- [x] Two-factor authentication
 
 #### Medium Term
 - [ ] Real payment provider integration
