@@ -3,6 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
 import crypto from 'crypto';
+import speakeasy from 'speakeasy';
+import QRCode from 'qrcode';
+import { AuthRequest } from '../middleware/auth.middleware';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -49,7 +52,7 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, twoFactorCode } = req.body;
 
     // Find user
     const user = await User.findOne({ email });
@@ -61,6 +64,39 @@ export const login = async (req: Request, res: Response) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if 2FA is enabled
+    if (user.twoFactorEnabled) {
+      if (!twoFactorCode) {
+        return res.status(200).json({ 
+          requiresTwoFactor: true,
+          message: 'Two-factor authentication code required' 
+        });
+      }
+
+      // Verify 2FA code
+      const verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret!,
+        encoding: 'base32',
+        token: twoFactorCode,
+        window: 2
+      });
+
+      if (!verified) {
+        // Check backup codes
+        const backupCodeIndex = user.twoFactorBackupCodes?.findIndex(
+          code => code === twoFactorCode
+        );
+        
+        if (backupCodeIndex === undefined || backupCodeIndex === -1) {
+          return res.status(401).json({ message: 'Invalid two-factor code' });
+        }
+
+        // Remove used backup code
+        user.twoFactorBackupCodes?.splice(backupCodeIndex, 1);
+        await user.save();
+      }
     }
 
     // Generate JWT token
@@ -76,6 +112,7 @@ export const login = async (req: Request, res: Response) => {
         balance: user.balance,
         bonusBalance: user.bonusBalance,
         vipLevel: user.vipLevel,
+        twoFactorEnabled: user.twoFactorEnabled,
       },
     });
   } catch (error) {
@@ -186,5 +223,135 @@ export const resetPassword = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Reset password error:', error);
     res.status(500).json({ message: 'Failed to reset password', error });
+  }
+};
+
+export const setup2FA = async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.twoFactorEnabled) {
+      return res.status(400).json({ message: 'Two-factor authentication is already enabled' });
+    }
+
+    // Generate secret
+    const secret = speakeasy.generateSecret({
+      name: `Cassanova Casino (${user.email})`,
+      length: 32
+    });
+
+    // Store secret temporarily (will be confirmed on verification)
+    user.twoFactorSecret = secret.base32;
+
+    // Generate backup codes
+    const backupCodes = Array.from({ length: 8 }, () => 
+      crypto.randomBytes(4).toString('hex').toUpperCase()
+    );
+    user.twoFactorBackupCodes = backupCodes;
+
+    await user.save();
+
+    // Generate QR code
+    const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
+
+    res.json({
+      message: 'Two-factor authentication setup initiated',
+      secret: secret.base32,
+      qrCode: qrCodeUrl,
+      backupCodes
+    });
+  } catch (error) {
+    console.error('Setup 2FA error:', error);
+    res.status(500).json({ message: 'Failed to setup two-factor authentication', error });
+  }
+};
+
+export const verify2FA = async (req: AuthRequest, res: Response) => {
+  try {
+    const { token } = req.body;
+    const user = await User.findById(req.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.twoFactorSecret) {
+      return res.status(400).json({ message: 'Two-factor authentication not initiated' });
+    }
+
+    // Verify token
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token,
+      window: 2
+    });
+
+    if (!verified) {
+      return res.status(401).json({ message: 'Invalid verification code' });
+    }
+
+    // Enable 2FA
+    user.twoFactorEnabled = true;
+    await user.save();
+
+    res.json({ 
+      message: 'Two-factor authentication enabled successfully',
+      backupCodes: user.twoFactorBackupCodes
+    });
+  } catch (error) {
+    console.error('Verify 2FA error:', error);
+    res.status(500).json({ message: 'Failed to verify two-factor authentication', error });
+  }
+};
+
+export const disable2FA = async (req: AuthRequest, res: Response) => {
+  try {
+    const { password } = req.body;
+    const user = await User.findById(req.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.twoFactorEnabled) {
+      return res.status(400).json({ message: 'Two-factor authentication is not enabled' });
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid password' });
+    }
+
+    // Disable 2FA
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = undefined;
+    user.twoFactorBackupCodes = undefined;
+    await user.save();
+
+    res.json({ message: 'Two-factor authentication disabled successfully' });
+  } catch (error) {
+    console.error('Disable 2FA error:', error);
+    res.status(500).json({ message: 'Failed to disable two-factor authentication', error });
+  }
+};
+
+export const get2FAStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.userId).select('twoFactorEnabled');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ 
+      twoFactorEnabled: user.twoFactorEnabled || false
+    });
+  } catch (error) {
+    console.error('Get 2FA status error:', error);
+    res.status(500).json({ message: 'Failed to get two-factor status', error });
   }
 };

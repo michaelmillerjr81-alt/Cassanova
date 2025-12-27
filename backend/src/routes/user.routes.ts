@@ -3,7 +3,9 @@ import {
   getUserProfile, 
   updateUserProfile, 
   updateResponsibleGaming,
-  toggleFavoriteGame 
+  toggleFavoriteGame,
+  uploadKYCDocument,
+  getKYCDocuments
 } from '../controllers/user.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
 
@@ -15,5 +17,7 @@ router.get('/profile', getUserProfile);
 router.put('/profile', updateUserProfile);
 router.put('/responsible-gaming', updateResponsibleGaming);
 router.post('/favorites', toggleFavoriteGame);
+router.post('/kyc/upload', uploadKYCDocument);
+router.get('/kyc/documents', getKYCDocuments);
 
 export default router;

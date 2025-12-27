@@ -82,3 +82,60 @@ export const toggleFavoriteGame = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Failed to update favorites', error });
   }
 };
+
+export const uploadKYCDocument = async (req: AuthRequest, res: Response) => {
+  try {
+    const { documentType, documentUrl } = req.body;
+
+    if (!documentType || !documentUrl) {
+      return res.status(400).json({ message: 'Document type and URL are required' });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Add document URL to kycDocuments array
+    if (!user.kycDocuments) {
+      user.kycDocuments = [];
+    }
+    
+    // Store document with type prefix
+    const documentEntry = `${documentType}:${documentUrl}`;
+    user.kycDocuments.push(documentEntry);
+    
+    // Update KYC status to pending if not already verified
+    if (user.kycStatus !== 'verified') {
+      user.kycStatus = 'pending';
+    }
+
+    await user.save();
+
+    res.json({ 
+      message: 'KYC document uploaded successfully',
+      kycStatus: user.kycStatus,
+      kycDocuments: user.kycDocuments
+    });
+  } catch (error) {
+    console.error('Upload KYC document error:', error);
+    res.status(500).json({ message: 'Failed to upload KYC document', error });
+  }
+};
+
+export const getKYCDocuments = async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.userId).select('kycDocuments kycStatus');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ 
+      kycStatus: user.kycStatus,
+      kycDocuments: user.kycDocuments || []
+    });
+  } catch (error) {
+    console.error('Get KYC documents error:', error);
+    res.status(500).json({ message: 'Failed to fetch KYC documents', error });
+  }
+};

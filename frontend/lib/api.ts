@@ -19,7 +19,7 @@ export const api = {
       return response.json();
     },
 
-    login: async (credentials: { email: string; password: string }) => {
+    login: async (credentials: { email: string; password: string; twoFactorCode?: string }) => {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,6 +56,48 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword }),
+      });
+      return response.json();
+    },
+
+    setup2FA: async (token: string) => {
+      const response = await fetch(`${API_BASE_URL}/auth/2fa/setup`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+      });
+      return response.json();
+    },
+
+    verify2FA: async (token: string, code: string) => {
+      const response = await fetch(`${API_BASE_URL}/auth/2fa/verify`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ token: code }),
+      });
+      return response.json();
+    },
+
+    disable2FA: async (token: string, password: string) => {
+      const response = await fetch(`${API_BASE_URL}/auth/2fa/disable`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ password }),
+      });
+      return response.json();
+    },
+
+    get2FAStatus: async (token: string) => {
+      const response = await fetch(`${API_BASE_URL}/auth/2fa/status`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       return response.json();
     },
@@ -145,6 +187,25 @@ export const api = {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ gameId }),
+      });
+      return response.json();
+    },
+
+    uploadKYCDocument: async (token: string, documentType: string, documentUrl: string) => {
+      const response = await fetch(`${API_BASE_URL}/users/kyc/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ documentType, documentUrl }),
+      });
+      return response.json();
+    },
+
+    getKYCDocuments: async (token: string) => {
+      const response = await fetch(`${API_BASE_URL}/users/kyc/documents`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       return response.json();
     },

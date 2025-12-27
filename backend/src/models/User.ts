@@ -38,6 +38,9 @@ export interface IUser extends Document {
     selfExclusionUntil?: Date;
   };
   favoriteGames: string[];
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string;
+  twoFactorBackupCodes?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -89,6 +92,9 @@ const UserSchema: Schema = new Schema(
       selfExclusionUntil: { type: Date },
     },
     favoriteGames: [{ type: String }],
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String },
+    twoFactorBackupCodes: [{ type: String }],
   },
   {
     timestamps: true,
