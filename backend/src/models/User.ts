@@ -47,6 +47,7 @@ export interface IUser extends Document {
     sessionTimeLimit?: number;
     selfExclusionUntil?: Date;
   };
+  role: 'user' | 'admin';
   favoriteGames: string[];
   twoFactorEnabled: boolean;
   twoFactorSecret?: string;
@@ -109,6 +110,7 @@ const UserSchema: Schema = new Schema(
       sessionTimeLimit: { type: Number },
       selfExclusionUntil: { type: Date },
     },
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
     favoriteGames: [{ type: String }],
     twoFactorEnabled: { type: Boolean, default: false },
     twoFactorSecret: { type: String },

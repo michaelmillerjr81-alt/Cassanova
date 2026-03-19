@@ -118,6 +118,7 @@ export const login = async (req: Request, res: Response) => {
         cryptoAddresses: user.cryptoAddresses || [],
         vipLevel: user.vipLevel,
         kycStatus: user.kycStatus,
+        role: user.role || 'user',
         twoFactorEnabled: user.twoFactorEnabled,
       },
     });

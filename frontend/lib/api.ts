@@ -190,6 +190,59 @@ export const api = {
     },
   },
 
+  // Admin endpoints
+  admin: {
+    getStats: async (token: string) => {
+      const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.json();
+    },
+
+    getUsers: async (token: string, params?: Record<string, string>) => {
+      const query = params ? new URLSearchParams(params).toString() : '';
+      const response = await fetch(`${API_BASE_URL}/admin/users${query ? `?${query}` : ''}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.json();
+    },
+
+    updateUserRole: async (token: string, userId: string, role: string) => {
+      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ role }),
+      });
+      return response.json();
+    },
+
+    updateUserKYC: async (token: string, userId: string, kycStatus: string) => {
+      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/kyc`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ kycStatus }),
+      });
+      return response.json();
+    },
+
+    getTransactions: async (token: string, params?: Record<string, string>) => {
+      const query = params ? new URLSearchParams(params).toString() : '';
+      const response = await fetch(`${API_BASE_URL}/admin/transactions${query ? `?${query}` : ''}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.json();
+    },
+
+    updateTransactionStatus: async (token: string, transactionId: string, status: string) => {
+      const response = await fetch(`${API_BASE_URL}/admin/transactions/${transactionId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status }),
+      });
+      return response.json();
+    },
+  },
+
   // User endpoints
   user: {
     getProfile: async (token: string) => {

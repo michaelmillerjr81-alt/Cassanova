@@ -58,6 +58,14 @@ export default function Header() {
                 >
                   Dashboard
                 </Link>
+                {user.role === 'admin' && (
+                  <Link
+                    href="/admin"
+                    className="px-3 py-1.5 rounded-lg bg-purple-600/40 hover:bg-purple-600/60 transition-colors font-medium text-sm text-purple-200"
+                  >
+                    Admin
+                  </Link>
+                )}
               </>
             ) : (
               <>

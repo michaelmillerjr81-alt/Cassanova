@@ -20,6 +20,7 @@ export interface User {
   cryptoAddresses: CryptoAddress[];
   vipLevel: 'bronze' | 'silver' | 'gold' | 'platinum';
   kycStatus: 'pending' | 'verified' | 'rejected';
+  role: 'user' | 'admin';
 }
 
 export interface Game {
