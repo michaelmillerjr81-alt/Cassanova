@@ -11,6 +11,7 @@ import promotionRoutes from './routes/promotion.routes';
 import transactionRoutes from './routes/transaction.routes';
 import coinPackageRoutes from './routes/coinpackage.routes';
 import adminRoutes from './routes/admin.routes';
+import webhookRoutes from './routes/webhook.routes';
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use('/api/promotions', promotionRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/packages', coinPackageRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {

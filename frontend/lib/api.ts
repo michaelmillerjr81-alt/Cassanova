@@ -143,7 +143,7 @@ export const api = {
       return response.json();
     },
 
-    purchase: async (token: string, data: { packageId: string; cryptoCurrency: string; cryptoTxHash?: string }) => {
+    purchase: async (token: string, data: { packageId: string }) => {
       const response = await fetch(`${API_BASE_URL}/packages/purchase`, {
         method: 'POST',
         headers: {

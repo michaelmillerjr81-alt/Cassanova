@@ -5,24 +5,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
-import { CoinPackage, CryptoCurrency } from '@/types';
-
-const CRYPTO_OPTIONS: { id: CryptoCurrency; name: string; icon: string }[] = [
-  { id: 'BTC', name: 'Bitcoin', icon: '₿' },
-  { id: 'ETH', name: 'Ethereum', icon: 'Ξ' },
-  { id: 'USDT', name: 'Tether', icon: '₮' },
-  { id: 'USDC', name: 'USD Coin', icon: '$' },
-  { id: 'SOL', name: 'Solana', icon: '◎' },
-  { id: 'DOGE', name: 'Dogecoin', icon: 'Ð' },
-  { id: 'LTC', name: 'Litecoin', icon: 'Ł' },
-];
+import { CoinPackage } from '@/types';
 
 export default function BuyGoldCoinsPage() {
   const router = useRouter();
   const { user, token, isAuthenticated, formatGC, formatSC } = useAuth();
   const [packages, setPackages] = useState<CoinPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<string>('');
-  const [selectedCrypto, setSelectedCrypto] = useState<CryptoCurrency>('BTC');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -72,8 +61,12 @@ export default function BuyGoldCoinsPage() {
     try {
       const response = await api.packages.purchase(token, {
         packageId: selectedPackage,
-        cryptoCurrency: selectedCrypto,
       });
+
+      if (response.paymentUrl) {
+        window.location.href = response.paymentUrl;
+        return;
+      }
 
       if (response.goldCoins !== undefined) {
         const pkg = packages.find((p) => p._id === selectedPackage);
@@ -84,7 +77,7 @@ export default function BuyGoldCoinsPage() {
         setTimeout(() => {
           router.push('/dashboard');
         }, 2000);
-      } else {
+      } else if (!response.paymentUrl) {
         setError(response.message || 'Purchase failed');
       }
     } catch {
@@ -99,7 +92,6 @@ export default function BuyGoldCoinsPage() {
   }
 
   const selectedPkg = packages.find((p) => p._id === selectedPackage);
-  const cryptoPrice = selectedPkg?.cryptoPrices.find((cp) => cp.currency === selectedCrypto);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 py-12 px-4">
@@ -111,7 +103,7 @@ export default function BuyGoldCoinsPage() {
           <h1 className="text-4xl font-bold text-white mb-2">Buy Gold Coins</h1>
           <p className="text-gray-300">
             Purchase Gold Coins and receive <span className="text-green-400 font-semibold">FREE Sweep Coins</span> with
-            every package
+            every package. Pay with 70+ cryptocurrencies via CoinGate.
           </p>
         </div>
 
@@ -127,7 +119,6 @@ export default function BuyGoldCoinsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <form onSubmit={handlePurchase}>
-              {/* Coin Packages */}
               <div className="mb-8">
                 <h2 className="text-xl font-bold text-white mb-4">Select a Package</h2>
                 {packagesLoading ? (
@@ -161,36 +152,13 @@ export default function BuyGoldCoinsPage() {
                         <div className="text-green-400 font-semibold text-sm mb-3">
                           + {pkg.bonusSweepCoins} FREE Sweep Coins
                         </div>
-                        <div className="text-gray-400 text-sm">{pkg.priceUSDT} USDT equivalent</div>
+                        <div className="text-gray-400 text-sm">${pkg.priceUSDT} USD</div>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Crypto Selection */}
-              <div className="mb-8">
-                <h2 className="text-xl font-bold text-white mb-4">Pay With</h2>
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                  {CRYPTO_OPTIONS.map((crypto) => (
-                    <button
-                      key={crypto.id}
-                      type="button"
-                      onClick={() => setSelectedCrypto(crypto.id)}
-                      className={`p-3 rounded-lg border-2 text-center transition-all ${
-                        selectedCrypto === crypto.id
-                          ? 'border-yellow-400 bg-yellow-400/10'
-                          : 'border-gray-600 bg-gray-700/30 hover:border-gray-500'
-                      }`}
-                    >
-                      <div className="text-xl mb-1">{crypto.icon}</div>
-                      <div className="text-white text-xs font-medium">{crypto.id}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Price Summary */}
               {selectedPkg && (
                 <div className="bg-gray-800/80 border border-purple-500/30 rounded-xl p-6 mb-6">
                   <h3 className="text-white font-bold mb-3">Order Summary</h3>
@@ -211,11 +179,12 @@ export default function BuyGoldCoinsPage() {
                     </div>
                     <hr className="border-gray-700" />
                     <div className="flex justify-between text-white font-bold text-base">
-                      <span>Total ({selectedCrypto})</span>
-                      <span>
-                        {cryptoPrice ? `${cryptoPrice.amount} ${selectedCrypto}` : `${selectedPkg.priceUSDT} USDT eq.`}
-                      </span>
+                      <span>Total</span>
+                      <span>${selectedPkg.priceUSDT} USD</span>
                     </div>
+                    <p className="text-gray-500 text-xs mt-2">
+                      You&apos;ll choose your crypto on CoinGate&apos;s secure checkout — 70+ coins supported including BTC, ETH, USDT, SOL, DOGE, LTC and more.
+                    </p>
                   </div>
                 </div>
               )}
@@ -225,7 +194,7 @@ export default function BuyGoldCoinsPage() {
                 disabled={isLoading || !selectedPackage}
                 className="w-full py-4 px-6 bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold text-lg rounded-lg hover:from-yellow-500 hover:to-yellow-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                {isLoading ? 'Processing...' : 'Buy Gold Coins'}
+                {isLoading ? 'Redirecting to CoinGate...' : 'Buy Gold Coins'}
               </button>
             </form>
           </div>
@@ -251,16 +220,16 @@ export default function BuyGoldCoinsPage() {
                 </li>
                 <li className="flex items-start">
                   <span className="text-yellow-400 mr-2 font-bold">2.</span>
-                  <span>Choose your preferred cryptocurrency</span>
+                  <span>Click &quot;Buy Gold Coins&quot; to proceed</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-yellow-400 mr-2 font-bold">3.</span>
-                  <span>Complete the payment</span>
+                  <span>Choose your crypto &amp; pay on CoinGate&apos;s secure checkout</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-yellow-400 mr-2 font-bold">4.</span>
                   <span>
-                    Receive GC instantly + <span className="text-green-400">FREE SC</span>
+                    Coins credited automatically + <span className="text-green-400">FREE SC</span>
                   </span>
                 </li>
               </ul>
@@ -271,6 +240,13 @@ export default function BuyGoldCoinsPage() {
               <p className="text-sm text-gray-300">
                 Every Gold Coin purchase includes FREE Sweep Coins. SC can be used in prize-eligible games and redeemed
                 for crypto prizes!
+              </p>
+            </div>
+
+            <div className="bg-blue-900/30 border border-blue-500/30 rounded-xl p-6">
+              <h3 className="text-blue-400 font-bold text-lg mb-2">Powered by CoinGate</h3>
+              <p className="text-sm text-gray-300">
+                Secure crypto payments processed by CoinGate. Supports 70+ cryptocurrencies across multiple blockchains.
               </p>
             </div>
           </div>
@@ -288,15 +264,7 @@ const FALLBACK_PACKAGES: CoinPackage[] = [
     goldCoins: 5000,
     bonusSweepCoins: 5,
     priceUSDT: 4.99,
-    cryptoPrices: [
-      { currency: 'BTC', amount: 0.00005 },
-      { currency: 'ETH', amount: 0.0015 },
-      { currency: 'USDT', amount: 4.99 },
-      { currency: 'USDC', amount: 4.99 },
-      { currency: 'SOL', amount: 0.035 },
-      { currency: 'DOGE', amount: 25 },
-      { currency: 'LTC', amount: 0.05 },
-    ],
+    cryptoPrices: [],
     isPopular: false,
     isActive: true,
     discount: 0,
@@ -309,15 +277,7 @@ const FALLBACK_PACKAGES: CoinPackage[] = [
     goldCoins: 25000,
     bonusSweepCoins: 25,
     priceUSDT: 19.99,
-    cryptoPrices: [
-      { currency: 'BTC', amount: 0.0002 },
-      { currency: 'ETH', amount: 0.006 },
-      { currency: 'USDT', amount: 19.99 },
-      { currency: 'USDC', amount: 19.99 },
-      { currency: 'SOL', amount: 0.14 },
-      { currency: 'DOGE', amount: 100 },
-      { currency: 'LTC', amount: 0.2 },
-    ],
+    cryptoPrices: [],
     isPopular: true,
     isActive: true,
     discount: 0,
@@ -330,15 +290,7 @@ const FALLBACK_PACKAGES: CoinPackage[] = [
     goldCoins: 100000,
     bonusSweepCoins: 100,
     priceUSDT: 49.99,
-    cryptoPrices: [
-      { currency: 'BTC', amount: 0.0005 },
-      { currency: 'ETH', amount: 0.015 },
-      { currency: 'USDT', amount: 49.99 },
-      { currency: 'USDC', amount: 49.99 },
-      { currency: 'SOL', amount: 0.35 },
-      { currency: 'DOGE', amount: 250 },
-      { currency: 'LTC', amount: 0.5 },
-    ],
+    cryptoPrices: [],
     isPopular: false,
     isActive: true,
     discount: 10,
@@ -351,15 +303,7 @@ const FALLBACK_PACKAGES: CoinPackage[] = [
     goldCoins: 500000,
     bonusSweepCoins: 500,
     priceUSDT: 199.99,
-    cryptoPrices: [
-      { currency: 'BTC', amount: 0.002 },
-      { currency: 'ETH', amount: 0.06 },
-      { currency: 'USDT', amount: 199.99 },
-      { currency: 'USDC', amount: 199.99 },
-      { currency: 'SOL', amount: 1.4 },
-      { currency: 'DOGE', amount: 1000 },
-      { currency: 'LTC', amount: 2.0 },
-    ],
+    cryptoPrices: [],
     isPopular: false,
     isActive: true,
     discount: 20,

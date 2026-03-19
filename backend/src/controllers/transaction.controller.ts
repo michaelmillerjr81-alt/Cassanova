@@ -1,12 +1,19 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth.middleware';
 import Transaction from '../models/Transaction';
 import User from '../models/User';
 import CoinPackage from '../models/CoinPackage';
+import * as coingate from '../services/coingate.service';
 
 const DAILY_BONUS_SC = 0.3;
 const DAILY_BONUS_GC = 1000;
 const MIN_REDEMPTION_SC = 100;
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+
+const SC_TO_USD_RATE = 1;
 
 export const getUserTransactions = async (req: AuthRequest, res: Response) => {
   try {
@@ -27,10 +34,10 @@ export const getUserTransactions = async (req: AuthRequest, res: Response) => {
 
 export const purchaseGoldCoins = async (req: AuthRequest, res: Response) => {
   try {
-    const { packageId, cryptoCurrency, cryptoTxHash } = req.body;
+    const { packageId } = req.body;
 
-    if (!packageId || !cryptoCurrency) {
-      return res.status(400).json({ message: 'Package ID and crypto currency are required' });
+    if (!packageId) {
+      return res.status(400).json({ message: 'Package ID is required' });
     }
 
     const coinPackage = await CoinPackage.findById(packageId);
@@ -43,13 +50,6 @@ export const purchaseGoldCoins = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const cryptoPrice = coinPackage.cryptoPrices.find(
-      (p) => p.currency === cryptoCurrency.toUpperCase()
-    );
-    if (!cryptoPrice) {
-      return res.status(400).json({ message: `${cryptoCurrency} is not supported for this package` });
-    }
-
     const gcBefore = user.goldCoins;
     const scBefore = user.sweepCoins;
     const gcAfter = gcBefore + coinPackage.goldCoins;
@@ -60,10 +60,7 @@ export const purchaseGoldCoins = async (req: AuthRequest, res: Response) => {
       type: 'gc_purchase',
       currency: 'GC',
       amount: coinPackage.goldCoins,
-      status: cryptoTxHash ? 'completed' : 'pending',
-      cryptoCurrency: cryptoCurrency.toUpperCase(),
-      cryptoAmount: cryptoPrice.amount,
-      cryptoTxHash,
+      status: 'pending',
       packageId: coinPackage._id,
       description: `Purchased ${coinPackage.name} (${coinPackage.goldCoins.toLocaleString()} GC + ${coinPackage.bonusSweepCoins} FREE SC)`,
       gcBefore,
@@ -74,11 +71,37 @@ export const purchaseGoldCoins = async (req: AuthRequest, res: Response) => {
 
     await transaction.save();
 
-    if (cryptoTxHash) {
-      user.goldCoins = gcAfter;
-      user.sweepCoins = scAfter;
-      await user.save();
+    const txnId = (transaction._id as mongoose.Types.ObjectId).toString();
+
+    if (coingate.isConfigured()) {
+      const order = await coingate.createOrder({
+        orderId: txnId,
+        priceAmount: coinPackage.priceUSDT,
+        priceCurrency: 'USD',
+        receiveCurrency: 'DO_NOT_CONVERT',
+        title: `Cassanova - ${coinPackage.name}`,
+        description: `${coinPackage.goldCoins.toLocaleString()} Gold Coins + ${coinPackage.bonusSweepCoins} FREE Sweep Coins`,
+        callbackUrl: `${BACKEND_URL}/api/webhooks/coingate`,
+        successUrl: `${FRONTEND_URL}/payment/success?txn=${txnId}`,
+        cancelUrl: `${FRONTEND_URL}/payment/cancel?txn=${txnId}`,
+        purchaserEmail: user.email,
+      });
+
+      transaction.coingateOrderId = order.id;
+      await transaction.save();
+
+      return res.status(201).json({
+        message: 'Payment order created',
+        paymentUrl: order.payment_url,
+        transactionId: txnId,
+      });
     }
+
+    transaction.status = 'completed';
+    await transaction.save();
+    user.goldCoins = gcAfter;
+    user.sweepCoins = scAfter;
+    await user.save();
 
     res.status(201).json({
       message: 'Gold Coins purchase successful',
@@ -123,6 +146,9 @@ export const redeemSweepCoins = async (req: AuthRequest, res: Response) => {
     const scBefore = user.sweepCoins;
     const scAfter = scBefore - amount;
 
+    user.sweepCoins = scAfter;
+    await user.save();
+
     const transaction = new Transaction({
       userId: req.userId,
       type: 'sc_redemption',
@@ -140,11 +166,26 @@ export const redeemSweepCoins = async (req: AuthRequest, res: Response) => {
 
     await transaction.save();
 
-    user.sweepCoins = scAfter;
-    await user.save();
+    if (coingate.isConfigured()) {
+      try {
+        const usdAmount = amount * SC_TO_USD_RATE;
+        const payout = await coingate.createPayout({
+          amount: usdAmount,
+          currency: cryptoCurrency.toUpperCase(),
+          address: walletAddress,
+          description: `Cassanova SC Redemption - ${amount} SC`,
+          platformId: (transaction._id as mongoose.Types.ObjectId).toString(),
+        });
+
+        transaction.coingatePayoutId = payout.id;
+        await transaction.save();
+      } catch (payoutError) {
+        console.error('CoinGate payout creation failed:', payoutError);
+      }
+    }
 
     res.status(201).json({
-      message: 'Redemption request submitted',
+      message: 'Redemption request submitted — payout processing',
       transaction,
       sweepCoins: user.sweepCoins,
     });

@@ -24,6 +24,8 @@ export interface ITransaction extends Document {
   walletAddress?: string;
   packageId?: mongoose.Types.ObjectId;
   transactionId?: string;
+  coingateOrderId?: number;
+  coingatePayoutId?: number;
   description?: string;
   gcBefore: number;
   gcAfter: number;
@@ -68,6 +70,8 @@ const TransactionSchema: Schema = new Schema(
     walletAddress: { type: String },
     packageId: { type: Schema.Types.ObjectId, ref: 'CoinPackage' },
     transactionId: { type: String },
+    coingateOrderId: { type: Number },
+    coingatePayoutId: { type: Number },
     description: { type: String },
     gcBefore: { type: Number, required: true },
     gcAfter: { type: Number, required: true },
