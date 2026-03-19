@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import { AuthRequest } from '../middleware/auth.middleware';
+import * as emailService from '../services/email.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -38,7 +39,7 @@ export const register = async (req: Request, res: Response) => {
 
     await user.save();
 
-    // In production, send verification email here
+    await emailService.sendVerificationEmail(user.email, user.username, verificationToken);
 
     res.status(201).json({ 
       message: 'User registered successfully. Please verify your email.',
@@ -141,6 +142,8 @@ export const verifyEmail = async (req: Request, res: Response) => {
     user.verificationToken = undefined;
     await user.save();
 
+    await emailService.sendWelcomeEmail(user.email, user.username);
+
     res.json({ message: 'Email verified successfully' });
   } catch (error) {
     console.error('Verification error:', error);
@@ -161,12 +164,11 @@ export const resendVerification = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Email is already verified' });
     }
 
-    // Generate new verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
     user.verificationToken = verificationToken;
     await user.save();
 
-    // In production, send verification email here
+    await emailService.sendVerificationEmail(user.email, user.username, verificationToken);
 
     res.json({ message: 'Verification email sent successfully' });
   } catch (error) {
@@ -185,20 +187,15 @@ export const forgotPassword = async (req: Request, res: Response) => {
       return res.json({ message: 'If the email exists, a password reset link has been sent' });
     }
 
-    // Generate password reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.passwordResetToken = resetToken;
-    user.passwordResetExpires = new Date(Date.now() + 3600000); // 1 hour from now
+    user.passwordResetExpires = new Date(Date.now() + 3600000);
     await user.save();
 
-    // In production, send password reset email here
-    // For development, we'll return the token in the response
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+    await emailService.sendPasswordResetEmail(user.email, user.username, resetToken);
 
     res.json({ 
       message: 'If the email exists, a password reset link has been sent',
-      // Remove resetUrl in production
-      resetUrl: process.env.NODE_ENV === 'development' ? resetUrl : undefined
     });
   } catch (error) {
     console.error('Forgot password error:', error);
