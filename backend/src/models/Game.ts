@@ -56,6 +56,7 @@ const GameSchema: Schema = new Schema(
   },
   {
     timestamps: true,
+    suppressReservedKeysWarning: true,
   }
 );
 

@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import CoinPackage from './models/CoinPackage';
+import Game from './models/Game';
+import Promotion from './models/Promotion';
 
 dotenv.config();
 
@@ -22,6 +24,8 @@ function cryptoPrices(usdtPrice: number) {
     amount: parseFloat((usdtPrice / rates[currency]).toFixed(8)),
   }));
 }
+
+/* ── Coin Packages ── */
 
 const packages = [
   {
@@ -86,32 +90,623 @@ const packages = [
   },
 ];
 
+/* ── Games ── */
+
+const games = [
+  // ─── SLOTS ───
+  {
+    title: 'Pharaoh\'s Fortune',
+    slug: 'pharaohs-fortune',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'classic',
+    thumbnail: '/images/games/pharaohs-fortune.jpg',
+    description: 'Explore ancient Egyptian tombs in this 5-reel, 25-payline slot with expanding wilds, free spin pyramids, and a golden scarab bonus round.',
+    rtp: 96.5,
+    volatility: 'medium',
+    features: ['Free Spins', 'Expanding Wilds', 'Bonus Round', 'Multipliers'],
+    minBet: 0.10,
+    maxBet: 100,
+    isPopular: true,
+    isNew: false,
+    isFeatured: true,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/pharaohs-fortune',
+  },
+  {
+    title: 'Neon Nights',
+    slug: 'neon-nights',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'video-slots',
+    thumbnail: '/images/games/neon-nights.jpg',
+    description: 'A vibrant cyberpunk-themed slot with cascading reels, neon wilds, and a city-skyline bonus that awards up to 50 free spins.',
+    rtp: 97.1,
+    volatility: 'high',
+    features: ['Cascading Reels', 'Free Spins', 'Sticky Wilds', 'Re-Spins'],
+    minBet: 0.20,
+    maxBet: 200,
+    isPopular: true,
+    isNew: true,
+    isFeatured: true,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/neon-nights',
+  },
+  {
+    title: 'Dragon\'s Hoard',
+    slug: 'dragons-hoard',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'video-slots',
+    thumbnail: '/images/games/dragons-hoard.jpg',
+    description: 'Enter the dragon\'s lair for massive wins. Features a progressive jackpot, dragon breath wilds, and a treasure vault pick-me bonus.',
+    rtp: 95.8,
+    volatility: 'high',
+    features: ['Progressive Jackpot', 'Pick-Me Bonus', 'Wild Multipliers', 'Free Spins'],
+    minBet: 0.50,
+    maxBet: 250,
+    isPopular: true,
+    isNew: false,
+    isFeatured: true,
+    hasJackpot: true,
+    jackpotAmount: 125000,
+    demoAvailable: true,
+    launchUrl: '/play/dragons-hoard',
+  },
+  {
+    title: 'Lucky Sevens Classic',
+    slug: 'lucky-sevens-classic',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'classic',
+    thumbnail: '/images/games/lucky-sevens.jpg',
+    description: 'A nostalgic 3-reel classic slot with bars, cherries, and lucky sevens. Simple gameplay with surprisingly generous payouts.',
+    rtp: 96.0,
+    volatility: 'low',
+    features: ['Classic Reels', 'Multipliers', 'Nudge Feature'],
+    minBet: 0.10,
+    maxBet: 50,
+    isPopular: false,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/lucky-sevens-classic',
+  },
+  {
+    title: 'Crypto Craze',
+    slug: 'crypto-craze',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'video-slots',
+    thumbnail: '/images/games/crypto-craze.jpg',
+    description: 'A crypto-themed slot where Bitcoin, Ethereum, and Solana symbols unlock blockchain bonus rounds with cascading multipliers.',
+    rtp: 96.8,
+    volatility: 'medium',
+    features: ['Blockchain Bonus', 'Cascading Multipliers', 'Free Spins', 'Scatter Pays'],
+    minBet: 0.25,
+    maxBet: 150,
+    isPopular: true,
+    isNew: true,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/crypto-craze',
+  },
+  {
+    title: 'Ocean\'s Treasure',
+    slug: 'oceans-treasure',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'video-slots',
+    thumbnail: '/images/games/oceans-treasure.jpg',
+    description: 'Dive deep into an underwater adventure with pearl wilds, sunken ship free spins, and a kraken battle bonus round.',
+    rtp: 96.3,
+    volatility: 'medium',
+    features: ['Free Spins', 'Wild Substitution', 'Battle Bonus', 'Expanding Reels'],
+    minBet: 0.10,
+    maxBet: 100,
+    isPopular: false,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/oceans-treasure',
+  },
+  {
+    title: 'Wild West Gold Rush',
+    slug: 'wild-west-gold-rush',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'video-slots',
+    thumbnail: '/images/games/wild-west-gold-rush.jpg',
+    description: 'Saddle up for a Wild West adventure with sheriff wilds, train robbery bonus rounds, and dynamite scatter explosions.',
+    rtp: 95.5,
+    volatility: 'high',
+    features: ['Train Robbery Bonus', 'Dynamite Scatters', 'Sticky Wilds', 'Free Spins'],
+    minBet: 0.20,
+    maxBet: 200,
+    isPopular: false,
+    isNew: true,
+    isFeatured: false,
+    hasJackpot: true,
+    jackpotAmount: 50000,
+    demoAvailable: true,
+    launchUrl: '/play/wild-west-gold-rush',
+  },
+  {
+    title: 'Fruit Fiesta',
+    slug: 'fruit-fiesta',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'classic',
+    thumbnail: '/images/games/fruit-fiesta.jpg',
+    description: 'A colorful fruit-themed slot with a party twist. Features fruit cocktail bonuses, fiesta free spins, and a piñata pick-me game.',
+    rtp: 97.2,
+    volatility: 'low',
+    features: ['Piñata Bonus', 'Free Spins', 'Cocktail Wilds', 'Multipliers'],
+    minBet: 0.05,
+    maxBet: 50,
+    isPopular: false,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/fruit-fiesta',
+  },
+  {
+    title: 'Astro Spin',
+    slug: 'astro-spin',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'video-slots',
+    thumbnail: '/images/games/astro-spin.jpg',
+    description: 'Blast off into a galactic slot with floating reels, black hole wilds that absorb and multiply, and an orbital free spins feature.',
+    rtp: 96.7,
+    volatility: 'medium',
+    features: ['Black Hole Wilds', 'Orbital Free Spins', 'Gravity Multipliers', 'Re-Spins'],
+    minBet: 0.15,
+    maxBet: 120,
+    isPopular: true,
+    isNew: true,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/astro-spin',
+  },
+  {
+    title: 'Mystic Forest',
+    slug: 'mystic-forest',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'video-slots',
+    thumbnail: '/images/games/mystic-forest.jpg',
+    description: 'Wander through an enchanted forest with fairy wilds, mushroom multipliers, and a moonlight free spins trail that grows with each win.',
+    rtp: 96.4,
+    volatility: 'medium',
+    features: ['Trail Bonus', 'Fairy Wilds', 'Mushroom Multipliers', 'Growing Free Spins'],
+    minBet: 0.10,
+    maxBet: 100,
+    isPopular: false,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/mystic-forest',
+  },
+  {
+    title: 'Mega Moolah Millions',
+    slug: 'mega-moolah-millions',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'jackpot',
+    thumbnail: '/images/games/mega-moolah-millions.jpg',
+    description: 'The biggest jackpot on Cassanova. Four progressive tiers — Mini, Minor, Major, and Mega — with a random wheel-of-fortune trigger.',
+    rtp: 94.5,
+    volatility: 'high',
+    features: ['4-Tier Progressive Jackpot', 'Jackpot Wheel', 'Free Spins', 'Wild Multipliers'],
+    minBet: 0.25,
+    maxBet: 50,
+    isPopular: true,
+    isNew: false,
+    isFeatured: true,
+    hasJackpot: true,
+    jackpotAmount: 500000,
+    demoAvailable: true,
+    launchUrl: '/play/mega-moolah-millions',
+  },
+  {
+    title: 'Diamond Vault',
+    slug: 'diamond-vault',
+    provider: 'Cassanova Studios',
+    category: 'slots',
+    subcategory: 'video-slots',
+    thumbnail: '/images/games/diamond-vault.jpg',
+    description: 'Break into the diamond vault with heist-themed gameplay. Crack safes for instant wins, trigger alarm free spins, and escape with multiplied prizes.',
+    rtp: 96.1,
+    volatility: 'high',
+    features: ['Safe Cracker Bonus', 'Alarm Free Spins', 'Escape Multiplier', 'Instant Wins'],
+    minBet: 0.20,
+    maxBet: 200,
+    isPopular: false,
+    isNew: true,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/diamond-vault',
+  },
+
+  // ─── TABLE GAMES ───
+  {
+    title: 'Cassanova Blackjack',
+    slug: 'cassanova-blackjack',
+    provider: 'Cassanova Studios',
+    category: 'table-games',
+    subcategory: 'blackjack',
+    thumbnail: '/images/games/blackjack.jpg',
+    description: 'Classic blackjack with six-deck shoe, split, double-down, insurance, and side bets. Clean interface with real-time card counting hints.',
+    rtp: 99.5,
+    volatility: 'low',
+    features: ['Split', 'Double Down', 'Insurance', 'Side Bets'],
+    minBet: 1,
+    maxBet: 500,
+    isPopular: true,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/cassanova-blackjack',
+  },
+  {
+    title: 'European Roulette',
+    slug: 'european-roulette',
+    provider: 'Cassanova Studios',
+    category: 'table-games',
+    subcategory: 'roulette',
+    thumbnail: '/images/games/roulette.jpg',
+    description: 'Single-zero European roulette with a beautiful 3D wheel. Inside bets, outside bets, neighbor bets, and a racetrack betting area.',
+    rtp: 97.3,
+    volatility: 'medium',
+    features: ['Single Zero', 'Racetrack Bets', 'Neighbor Bets', 'Statistics Panel'],
+    minBet: 0.50,
+    maxBet: 500,
+    isPopular: true,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/european-roulette',
+  },
+  {
+    title: 'Casino Hold\'em',
+    slug: 'casino-holdem',
+    provider: 'Cassanova Studios',
+    category: 'table-games',
+    subcategory: 'poker',
+    thumbnail: '/images/games/casino-holdem.jpg',
+    description: 'Texas Hold\'em against the dealer. Ante up, see the flop, and decide to call or fold. Features an AA+ side bet for premium hands.',
+    rtp: 97.8,
+    volatility: 'medium',
+    features: ['Ante & Call', 'AA+ Side Bet', 'Fold Option', 'Auto-Play'],
+    minBet: 1,
+    maxBet: 300,
+    isPopular: false,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/casino-holdem',
+  },
+  {
+    title: 'Baccarat Pro',
+    slug: 'baccarat-pro',
+    provider: 'Cassanova Studios',
+    category: 'table-games',
+    subcategory: 'baccarat',
+    thumbnail: '/images/games/baccarat.jpg',
+    description: 'Professional baccarat with banker, player, and tie bets. Includes road maps, squeeze feature, and detailed hand history.',
+    rtp: 98.9,
+    volatility: 'low',
+    features: ['Squeeze Feature', 'Road Maps', 'Hand History', 'Pair Side Bets'],
+    minBet: 1,
+    maxBet: 1000,
+    isPopular: false,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/baccarat-pro',
+  },
+
+  // ─── VIDEO POKER ───
+  {
+    title: 'Jacks or Better',
+    slug: 'jacks-or-better',
+    provider: 'Cassanova Studios',
+    category: 'video-poker',
+    subcategory: 'draw-poker',
+    thumbnail: '/images/games/jacks-or-better.jpg',
+    description: 'The classic video poker game. Hold your best cards, draw replacements, and win with a pair of Jacks or better. Multi-hand mode available.',
+    rtp: 99.5,
+    volatility: 'low',
+    features: ['Multi-Hand Mode', 'Double Up', 'Auto Hold', 'Pay Table Display'],
+    minBet: 0.25,
+    maxBet: 25,
+    isPopular: true,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/jacks-or-better',
+  },
+  {
+    title: 'Deuces Wild',
+    slug: 'deuces-wild',
+    provider: 'Cassanova Studios',
+    category: 'video-poker',
+    subcategory: 'draw-poker',
+    thumbnail: '/images/games/deuces-wild.jpg',
+    description: 'All twos are wild in this exciting video poker variant. More winning combinations means more action and bigger potential payouts.',
+    rtp: 98.9,
+    volatility: 'medium',
+    features: ['Wild Deuces', 'Double Up', 'Multi-Hand Mode', 'Strategy Tips'],
+    minBet: 0.25,
+    maxBet: 25,
+    isPopular: false,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/deuces-wild',
+  },
+
+  // ─── SPECIALTY / CRASH ───
+  {
+    title: 'Crypto Crash',
+    slug: 'crypto-crash',
+    provider: 'Cassanova Studios',
+    category: 'specialty',
+    subcategory: 'crash',
+    thumbnail: '/images/games/crypto-crash.jpg',
+    description: 'Watch the multiplier rise like a crypto chart. Cash out before it crashes! Features auto-cashout, multiplier history, and provably fair verification.',
+    rtp: 97.0,
+    volatility: 'high',
+    features: ['Auto-Cashout', 'Provably Fair', 'Live Chat', 'Multiplier History'],
+    minBet: 0.10,
+    maxBet: 500,
+    isPopular: true,
+    isNew: true,
+    isFeatured: true,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/crypto-crash',
+  },
+  {
+    title: 'Plinko',
+    slug: 'plinko',
+    provider: 'Cassanova Studios',
+    category: 'specialty',
+    subcategory: 'instant-win',
+    thumbnail: '/images/games/plinko.jpg',
+    description: 'Drop the ball and watch it bounce through pegs. Choose your risk level (low, medium, high) and number of rows for different payout structures.',
+    rtp: 97.0,
+    volatility: 'medium',
+    features: ['Adjustable Risk', 'Row Selection', 'Auto-Play', 'Provably Fair'],
+    minBet: 0.10,
+    maxBet: 100,
+    isPopular: true,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/plinko',
+  },
+  {
+    title: 'Mines',
+    slug: 'mines',
+    provider: 'Cassanova Studios',
+    category: 'specialty',
+    subcategory: 'instant-win',
+    thumbnail: '/images/games/mines.jpg',
+    description: 'Uncover gems while avoiding hidden mines on a 5x5 grid. Each revealed gem increases your multiplier. Cash out anytime or risk it all.',
+    rtp: 97.0,
+    volatility: 'high',
+    features: ['Adjustable Mines Count', 'Auto-Cashout', 'Provably Fair', 'Instant Play'],
+    minBet: 0.10,
+    maxBet: 100,
+    isPopular: true,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/mines',
+  },
+  {
+    title: 'Dice',
+    slug: 'dice',
+    provider: 'Cassanova Studios',
+    category: 'specialty',
+    subcategory: 'instant-win',
+    thumbnail: '/images/games/dice.jpg',
+    description: 'Roll over or under your chosen number. Adjust the slider to set your win chance and payout multiplier. Fast-paced and provably fair.',
+    rtp: 99.0,
+    volatility: 'low',
+    features: ['Adjustable Win Chance', 'Auto-Bet', 'Provably Fair', 'Instant Results'],
+    minBet: 0.01,
+    maxBet: 500,
+    isPopular: false,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/dice',
+  },
+  {
+    title: 'Keno',
+    slug: 'keno',
+    provider: 'Cassanova Studios',
+    category: 'specialty',
+    subcategory: 'lottery',
+    thumbnail: '/images/games/keno.jpg',
+    description: 'Pick up to 10 numbers from 1 to 80. Watch the draw and match as many as you can for escalating prizes.',
+    rtp: 95.0,
+    volatility: 'medium',
+    features: ['Quick Pick', 'Multi-Draw', 'Auto-Play', 'Statistics'],
+    minBet: 0.10,
+    maxBet: 50,
+    isPopular: false,
+    isNew: false,
+    isFeatured: false,
+    hasJackpot: false,
+    demoAvailable: true,
+    launchUrl: '/play/keno',
+  },
+];
+
+/* ── Promotions ── */
+
+const promotions = [
+  {
+    title: 'Welcome Bonus',
+    slug: 'welcome-bonus',
+    description: 'New to Cassanova? Get 100,000 FREE Gold Coins and 30 FREE Sweep Coins when you create your account!',
+    type: 'welcome-bonus',
+    bonusGoldCoins: 100_000,
+    bonusSweepCoins: 30,
+    wageringRequirement: 1,
+    validFrom: new Date('2025-01-01'),
+    terms: 'Available to new players only. Gold Coins are for entertainment only and have no cash value. Sweep Coins have a 1x playthrough requirement before redemption. Must be 18+ to participate.',
+    image: '/images/promos/welcome-bonus.jpg',
+    isActive: true,
+    eligibleVipLevels: ['bronze', 'silver', 'gold', 'platinum'],
+  },
+  {
+    title: 'Daily FREE Sweep Coins',
+    slug: 'daily-free-sc',
+    description: 'Log in every day to claim 1,000 FREE Gold Coins and 0.30 FREE Sweep Coins. No purchase necessary!',
+    type: 'daily-bonus',
+    bonusGoldCoins: 1_000,
+    bonusSweepCoins: 0.3,
+    wageringRequirement: 1,
+    validFrom: new Date('2025-01-01'),
+    terms: 'Available once every 24 hours. No purchase necessary. Sweep Coins have a 1x playthrough requirement before redemption.',
+    image: '/images/promos/daily-bonus.jpg',
+    isActive: true,
+    eligibleVipLevels: ['bronze', 'silver', 'gold', 'platinum'],
+  },
+  {
+    title: 'First Purchase Bonus',
+    slug: 'first-purchase-bonus',
+    description: 'Get 50% extra Sweep Coins on your first Gold Coin purchase! Buy any package and receive 50% bonus SC on top.',
+    type: 'purchase-bonus',
+    bonusPercentage: 50,
+    minGCPurchase: 10_000,
+    maxBonusSC: 500,
+    wageringRequirement: 3,
+    validFrom: new Date('2025-01-01'),
+    terms: 'First purchase only. Minimum 10,000 GC purchase. Bonus Sweep Coins have a 3x playthrough requirement. Maximum bonus of 500 SC.',
+    image: '/images/promos/first-purchase.jpg',
+    isActive: true,
+    eligibleVipLevels: ['bronze', 'silver', 'gold', 'platinum'],
+  },
+  {
+    title: 'Weekend Reload',
+    slug: 'weekend-reload',
+    description: 'Every Saturday and Sunday, enjoy 25% extra Sweep Coins on all Gold Coin purchases. Stack your weekend wins!',
+    type: 'purchase-bonus',
+    bonusPercentage: 25,
+    minGCPurchase: 50_000,
+    maxBonusSC: 250,
+    wageringRequirement: 5,
+    validFrom: new Date('2025-01-01'),
+    terms: 'Available on Saturdays and Sundays only. Minimum 50,000 GC purchase required. Bonus SC have a 5x playthrough requirement. Maximum 250 bonus SC per transaction.',
+    image: '/images/promos/weekend-reload.jpg',
+    isActive: true,
+    eligibleVipLevels: ['bronze', 'silver', 'gold', 'platinum'],
+  },
+  {
+    title: 'VIP Gold Exclusive',
+    slug: 'vip-gold-exclusive',
+    description: 'Exclusive for Gold & Platinum VIP members: receive 2,000 FREE Gold Coins + 5 FREE Sweep Coins every week!',
+    type: 'vip-bonus',
+    bonusGoldCoins: 2_000,
+    bonusSweepCoins: 5,
+    wageringRequirement: 1,
+    validFrom: new Date('2025-01-01'),
+    terms: 'Available to Gold and Platinum VIP members only. Claimed once per week. Sweep Coins have a 1x playthrough requirement.',
+    image: '/images/promos/vip-exclusive.jpg',
+    isActive: true,
+    eligibleVipLevels: ['gold', 'platinum'],
+  },
+  {
+    title: 'Refer a Friend',
+    slug: 'refer-a-friend',
+    description: 'Invite a friend and you both get 50,000 Gold Coins + 10 FREE Sweep Coins when they make their first purchase!',
+    type: 'free-sc',
+    bonusGoldCoins: 50_000,
+    bonusSweepCoins: 10,
+    wageringRequirement: 3,
+    validFrom: new Date('2025-01-01'),
+    terms: 'Referred friend must create an account and make a minimum purchase of $4.99 equivalent in crypto. Both referrer and referee receive the bonus. Limit of 10 referral bonuses per month.',
+    image: '/images/promos/refer-friend.jpg',
+    isActive: true,
+    eligibleVipLevels: ['bronze', 'silver', 'gold', 'platinum'],
+  },
+];
+
+/* ── Seed Runner ── */
+
 async function seed() {
   try {
     await mongoose.connect(MONGODB_URI);
-    console.log('Connected to MongoDB');
+    console.log('Connected to MongoDB\n');
 
-    const existing = await CoinPackage.countDocuments();
-    if (existing > 0) {
-      console.log(`Found ${existing} existing packages. Clearing...`);
+    // Coin Packages
+    const existingPkgs = await CoinPackage.countDocuments();
+    if (existingPkgs > 0) {
+      console.log(`Clearing ${existingPkgs} existing coin packages...`);
       await CoinPackage.deleteMany({});
     }
+    const pkgDocs = packages.map((pkg) => ({ ...pkg, cryptoPrices: cryptoPrices(pkg.priceUSDT) }));
+    const pkgResult = await CoinPackage.insertMany(pkgDocs);
+    console.log(`Seeded ${pkgResult.length} coin packages`);
 
-    const docs = packages.map((pkg) => ({
-      ...pkg,
-      cryptoPrices: cryptoPrices(pkg.priceUSDT),
-    }));
+    // Games
+    const existingGames = await Game.countDocuments();
+    if (existingGames > 0) {
+      console.log(`Clearing ${existingGames} existing games...`);
+      await Game.deleteMany({});
+    }
+    const gameResult = await Game.insertMany(games);
+    console.log(`Seeded ${gameResult.length} games`);
 
-    const result = await CoinPackage.insertMany(docs);
-    console.log(`Seeded ${result.length} coin packages:`);
-    result.forEach((pkg) => {
-      console.log(
-        `  ${pkg.name}: ${pkg.goldCoins.toLocaleString()} GC + ${pkg.bonusSweepCoins} SC — $${pkg.priceUSDT}`
-      );
-    });
+    // Promotions
+    const existingPromos = await Promotion.countDocuments();
+    if (existingPromos > 0) {
+      console.log(`Clearing ${existingPromos} existing promotions...`);
+      await Promotion.deleteMany({});
+    }
+    const promoResult = await Promotion.insertMany(promotions);
+    console.log(`Seeded ${promoResult.length} promotions`);
+
+    // Summary
+    console.log('\n── Summary ──');
+    console.log(`  Coin Packages : ${pkgResult.length}`);
+    console.log(`  Games         : ${gameResult.length}`);
+    const slotCount = games.filter((g) => g.category === 'slots').length;
+    const tableCount = games.filter((g) => g.category === 'table-games').length;
+    const vpCount = games.filter((g) => g.category === 'video-poker').length;
+    const specCount = games.filter((g) => g.category === 'specialty').length;
+    console.log(`    Slots       : ${slotCount}`);
+    console.log(`    Table Games : ${tableCount}`);
+    console.log(`    Video Poker : ${vpCount}`);
+    console.log(`    Specialty   : ${specCount}`);
+    console.log(`  Promotions    : ${promoResult.length}`);
 
     await mongoose.disconnect();
-    console.log('Done.');
+    console.log('\nDone.');
     process.exit(0);
   } catch (error) {
     console.error('Seed failed:', error);
