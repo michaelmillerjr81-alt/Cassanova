@@ -1,34 +1,39 @@
 import { Router, Request, Response } from 'express';
 import Transaction from '../models/Transaction';
 import User from '../models/User';
+import { verifyIpnSignature } from '../services/nowpayments.service';
 
 const router = Router();
 
 /**
- * CoinGate sends POST callbacks when order status changes.
- * Statuses: new, pending, confirming, paid, invalid, expired, canceled
- * We credit coins only on "paid".
+ * NOWPayments sends IPN (Instant Payment Notification) POST callbacks
+ * when payment status changes.
+ *
+ * Statuses: waiting, confirming, confirmed, sending,
+ *           partially_paid, finished, failed, refunded, expired
+ *
+ * We credit coins only on "finished".
  */
-router.post('/coingate', async (req: Request, res: Response) => {
+router.post('/nowpayments', async (req: Request, res: Response) => {
   try {
-    const {
-      id: coingateOrderId,
-      order_id: orderId,
-      status,
-      pay_amount,
-      pay_currency,
-      token: callbackToken,
-    } = req.body;
+    const signature = req.headers['x-nowpayments-sig'] as string | undefined;
 
-    const expectedToken = process.env.COINGATE_CALLBACK_TOKEN;
-    if (expectedToken && callbackToken !== expectedToken) {
-      console.warn('CoinGate webhook: invalid token');
-      return res.status(400).json({ message: 'Invalid token' });
+    if (!verifyIpnSignature(req.body, signature || '')) {
+      console.warn('NOWPayments IPN: invalid signature');
+      return res.status(400).json({ message: 'Invalid signature' });
     }
+
+    const {
+      order_id: orderId,
+      payment_status: status,
+      pay_amount: payAmount,
+      pay_currency: payCurrency,
+      payment_id: paymentId,
+    } = req.body;
 
     const transaction = await Transaction.findById(orderId);
     if (!transaction) {
-      console.warn(`CoinGate webhook: transaction ${orderId} not found`);
+      console.warn(`NOWPayments IPN: transaction ${orderId} not found`);
       return res.status(404).json({ message: 'Transaction not found' });
     }
 
@@ -36,11 +41,11 @@ router.post('/coingate', async (req: Request, res: Response) => {
       return res.json({ message: 'Already processed' });
     }
 
-    transaction.coingateOrderId = coingateOrderId;
-    if (pay_amount) transaction.cryptoAmount = parseFloat(pay_amount);
-    if (pay_currency) transaction.cryptoCurrency = pay_currency;
+    if (payAmount) transaction.cryptoAmount = parseFloat(payAmount);
+    if (payCurrency) transaction.cryptoCurrency = payCurrency;
+    if (paymentId) transaction.coingateOrderId = paymentId;
 
-    if (status === 'paid') {
+    if (status === 'finished' || status === 'confirmed') {
       transaction.status = 'completed';
       await transaction.save();
 
@@ -51,20 +56,20 @@ router.post('/coingate', async (req: Request, res: Response) => {
         await user.save();
       }
 
-      console.log(`CoinGate: order ${orderId} paid — credited user ${transaction.userId}`);
-    } else if (status === 'invalid' || status === 'expired' || status === 'canceled') {
-      transaction.status = status === 'canceled' ? 'cancelled' : 'failed';
+      console.log(`NOWPayments: order ${orderId} ${status} — credited user ${transaction.userId}`);
+    } else if (status === 'failed' || status === 'expired' || status === 'refunded') {
+      transaction.status = 'failed';
       await transaction.save();
-      console.log(`CoinGate: order ${orderId} ${status}`);
+      console.log(`NOWPayments: order ${orderId} ${status}`);
     } else {
       await transaction.save();
-      console.log(`CoinGate: order ${orderId} status=${status} (no action)`);
+      console.log(`NOWPayments: order ${orderId} status=${status} (no action)`);
     }
 
     res.json({ message: 'OK' });
   } catch (error) {
-    console.error('CoinGate webhook error:', error);
-    res.status(500).json({ message: 'Webhook processing failed' });
+    console.error('NOWPayments IPN error:', error);
+    res.status(500).json({ message: 'IPN processing failed' });
   }
 });
 

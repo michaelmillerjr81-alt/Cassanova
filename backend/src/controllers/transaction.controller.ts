@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 import Transaction from '../models/Transaction';
 import User from '../models/User';
 import CoinPackage from '../models/CoinPackage';
-import * as coingate from '../services/coingate.service';
+import * as payments from '../services/nowpayments.service';
 
 const DAILY_BONUS_SC = 0.3;
 const DAILY_BONUS_GC = 1000;
@@ -73,26 +73,23 @@ export const purchaseGoldCoins = async (req: AuthRequest, res: Response) => {
 
     const txnId = (transaction._id as mongoose.Types.ObjectId).toString();
 
-    if (coingate.isConfigured()) {
-      const order = await coingate.createOrder({
+    if (payments.isConfigured()) {
+      const invoice = await payments.createInvoice({
         orderId: txnId,
         priceAmount: coinPackage.priceUSDT,
-        priceCurrency: 'USD',
-        receiveCurrency: 'DO_NOT_CONVERT',
-        title: `Cassanova - ${coinPackage.name}`,
-        description: `${coinPackage.goldCoins.toLocaleString()} Gold Coins + ${coinPackage.bonusSweepCoins} FREE Sweep Coins`,
-        callbackUrl: `${BACKEND_URL}/api/webhooks/coingate`,
+        priceCurrency: 'usd',
+        orderDescription: `${coinPackage.goldCoins.toLocaleString()} Gold Coins + ${coinPackage.bonusSweepCoins} FREE Sweep Coins`,
+        ipnCallbackUrl: `${BACKEND_URL}/api/webhooks/nowpayments`,
         successUrl: `${FRONTEND_URL}/payment/success?txn=${txnId}`,
         cancelUrl: `${FRONTEND_URL}/payment/cancel?txn=${txnId}`,
-        purchaserEmail: user.email,
       });
 
-      transaction.coingateOrderId = order.id;
+      transaction.coingateOrderId = parseInt(invoice.id, 10) || 0;
       await transaction.save();
 
       return res.status(201).json({
-        message: 'Payment order created',
-        paymentUrl: order.payment_url,
+        message: 'Payment invoice created',
+        paymentUrl: invoice.invoice_url,
         transactionId: txnId,
       });
     }
@@ -166,10 +163,10 @@ export const redeemSweepCoins = async (req: AuthRequest, res: Response) => {
 
     await transaction.save();
 
-    if (coingate.isConfigured()) {
+    if (payments.isConfigured()) {
       try {
         const usdAmount = amount * SC_TO_USD_RATE;
-        const payout = await coingate.createPayout({
+        const payout = await payments.createPayout({
           amount: usdAmount,
           currency: cryptoCurrency.toUpperCase(),
           address: walletAddress,
@@ -177,10 +174,10 @@ export const redeemSweepCoins = async (req: AuthRequest, res: Response) => {
           platformId: (transaction._id as mongoose.Types.ObjectId).toString(),
         });
 
-        transaction.coingatePayoutId = payout.id;
+        transaction.coingatePayoutId = parseInt(payout.id, 10) || 0;
         await transaction.save();
       } catch (payoutError) {
-        console.error('CoinGate payout creation failed:', payoutError);
+        console.error('NOWPayments payout creation failed:', payoutError);
       }
     }
 

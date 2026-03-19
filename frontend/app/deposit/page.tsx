@@ -103,7 +103,7 @@ export default function BuyGoldCoinsPage() {
           <h1 className="text-4xl font-bold text-white mb-2">Buy Gold Coins</h1>
           <p className="text-gray-300">
             Purchase Gold Coins and receive <span className="text-green-400 font-semibold">FREE Sweep Coins</span> with
-            every package. Pay with 70+ cryptocurrencies via CoinGate.
+            every package. Pay with 200+ cryptocurrencies via NOWPayments.
           </p>
         </div>
 
@@ -183,7 +183,7 @@ export default function BuyGoldCoinsPage() {
                       <span>${selectedPkg.priceUSDT} USD</span>
                     </div>
                     <p className="text-gray-500 text-xs mt-2">
-                      You&apos;ll choose your crypto on CoinGate&apos;s secure checkout — 70+ coins supported including BTC, ETH, USDT, SOL, DOGE, LTC and more.
+                      You&apos;ll choose your crypto on NOWPayments&apos; secure checkout — 200+ coins supported including BTC, ETH, USDT, SOL, DOGE, LTC and more.
                     </p>
                   </div>
                 </div>
@@ -194,7 +194,7 @@ export default function BuyGoldCoinsPage() {
                 disabled={isLoading || !selectedPackage}
                 className="w-full py-4 px-6 bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold text-lg rounded-lg hover:from-yellow-500 hover:to-yellow-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                {isLoading ? 'Redirecting to CoinGate...' : 'Buy Gold Coins'}
+                {isLoading ? 'Redirecting to checkout...' : 'Buy Gold Coins'}
               </button>
             </form>
           </div>
@@ -224,7 +224,7 @@ export default function BuyGoldCoinsPage() {
                 </li>
                 <li className="flex items-start">
                   <span className="text-yellow-400 mr-2 font-bold">3.</span>
-                  <span>Choose your crypto &amp; pay on CoinGate&apos;s secure checkout</span>
+                  <span>Choose your crypto &amp; pay on NOWPayments&apos; secure checkout</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-yellow-400 mr-2 font-bold">4.</span>
@@ -244,9 +244,9 @@ export default function BuyGoldCoinsPage() {
             </div>
 
             <div className="bg-blue-900/30 border border-blue-500/30 rounded-xl p-6">
-              <h3 className="text-blue-400 font-bold text-lg mb-2">Powered by CoinGate</h3>
+              <h3 className="text-blue-400 font-bold text-lg mb-2">Powered by NOWPayments</h3>
               <p className="text-sm text-gray-300">
-                Secure crypto payments processed by CoinGate. Supports 70+ cryptocurrencies across multiple blockchains.
+                Secure crypto payments processed by NOWPayments. Supports 200+ cryptocurrencies across multiple blockchains.
               </p>
             </div>
           </div>
