@@ -9,6 +9,7 @@ import gameRoutes from './routes/game.routes';
 import userRoutes from './routes/user.routes';
 import promotionRoutes from './routes/promotion.routes';
 import transactionRoutes from './routes/transaction.routes';
+import coinPackageRoutes from './routes/coinpackage.routes';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use('/api/games', gameRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/packages', coinPackageRoutes);
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {

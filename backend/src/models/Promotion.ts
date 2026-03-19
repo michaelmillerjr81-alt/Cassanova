@@ -4,12 +4,13 @@ export interface IPromotion extends Document {
   title: string;
   slug: string;
   description: string;
-  type: 'welcome-bonus' | 'reload-bonus' | 'free-spins' | 'cashback' | 'vip-bonus';
-  bonusAmount?: number;
+  type: 'welcome-bonus' | 'purchase-bonus' | 'free-sc' | 'daily-bonus' | 'vip-bonus';
+  bonusGoldCoins?: number;
+  bonusSweepCoins?: number;
   bonusPercentage?: number;
   freeSpins?: number;
-  minDeposit?: number;
-  maxBonus?: number;
+  minGCPurchase?: number;
+  maxBonusSC?: number;
   wageringRequirement: number;
   validFrom: Date;
   validUntil?: Date;
@@ -27,16 +28,17 @@ const PromotionSchema: Schema = new Schema(
     title: { type: String, required: true },
     slug: { type: String, required: true, unique: true },
     description: { type: String, required: true },
-    type: { 
-      type: String, 
+    type: {
+      type: String,
       required: true,
-      enum: ['welcome-bonus', 'reload-bonus', 'free-spins', 'cashback', 'vip-bonus']
+      enum: ['welcome-bonus', 'purchase-bonus', 'free-sc', 'daily-bonus', 'vip-bonus'],
     },
-    bonusAmount: { type: Number },
+    bonusGoldCoins: { type: Number },
+    bonusSweepCoins: { type: Number },
     bonusPercentage: { type: Number },
     freeSpins: { type: Number },
-    minDeposit: { type: Number },
-    maxBonus: { type: Number },
+    minGCPurchase: { type: Number },
+    maxBonusSC: { type: Number },
     wageringRequirement: { type: Number, required: true },
     validFrom: { type: Date, required: true },
     validUntil: { type: Date },

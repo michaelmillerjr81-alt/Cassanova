@@ -5,73 +5,90 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
+import { CoinPackage, CryptoCurrency } from '@/types';
 
-const PAYMENT_METHODS = [
-  { id: 'credit-card', name: 'Credit/Debit Card', icon: '💳', min: 10, max: 10000 },
-  { id: 'crypto', name: 'Cryptocurrency', icon: '₿', min: 20, max: 50000 },
-  { id: 'bank-transfer', name: 'Bank Transfer', icon: '🏦', min: 50, max: 100000 },
-  { id: 'e-wallet', name: 'E-Wallet', icon: '💰', min: 10, max: 5000 },
+const CRYPTO_OPTIONS: { id: CryptoCurrency; name: string; icon: string }[] = [
+  { id: 'BTC', name: 'Bitcoin', icon: '₿' },
+  { id: 'ETH', name: 'Ethereum', icon: 'Ξ' },
+  { id: 'USDT', name: 'Tether', icon: '₮' },
+  { id: 'USDC', name: 'USD Coin', icon: '$' },
+  { id: 'SOL', name: 'Solana', icon: '◎' },
+  { id: 'DOGE', name: 'Dogecoin', icon: 'Ð' },
+  { id: 'LTC', name: 'Litecoin', icon: 'Ł' },
 ];
 
-export default function DepositPage() {
+export default function BuyGoldCoinsPage() {
   const router = useRouter();
-  const { user, token, isAuthenticated } = useAuth();
-  const [amount, setAmount] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState(PAYMENT_METHODS[0].id);
+  const { user, token, isAuthenticated, formatGC, formatSC } = useAuth();
+  const [packages, setPackages] = useState<CoinPackage[]>([]);
+  const [selectedPackage, setSelectedPackage] = useState<string>('');
+  const [selectedCrypto, setSelectedCrypto] = useState<CryptoCurrency>('BTC');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [packagesLoading, setPackagesLoading] = useState(true);
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
+      return;
     }
+
+    const fetchPackages = async () => {
+      try {
+        const data = await api.packages.getAll();
+        if (Array.isArray(data) && data.length > 0) {
+          setPackages(data);
+        } else {
+          setPackages(FALLBACK_PACKAGES);
+        }
+      } catch {
+        setPackages(FALLBACK_PACKAGES);
+      } finally {
+        setPackagesLoading(false);
+      }
+    };
+
+    fetchPackages();
   }, [isAuthenticated, router]);
 
-  const handleDeposit = async (e: React.FormEvent) => {
+  const handlePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    const depositAmount = parseFloat(amount);
-    const method = PAYMENT_METHODS.find((m) => m.id === selectedMethod);
-
-    if (!method) return;
-
-    if (depositAmount < method.min) {
-      setError(`Minimum deposit for ${method.name} is $${method.min}`);
-      return;
-    }
-
-    if (depositAmount > method.max) {
-      setError(`Maximum deposit for ${method.name} is $${method.max}`);
+    if (!selectedPackage) {
+      setError('Please select a Gold Coin package');
       return;
     }
 
     if (!token) {
-      setError('You must be logged in to make a deposit');
+      setError('You must be logged in to purchase');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await api.transactions.deposit(token, {
-        amount: depositAmount,
-        paymentMethod: method.name,
+      const response = await api.packages.purchase(token, {
+        packageId: selectedPackage,
+        cryptoCurrency: selectedCrypto,
       });
 
-      if (response.newBalance !== undefined) {
-        setSuccess(`Deposit successful! Your new balance is $${response.newBalance.toFixed(2)}`);
-        setAmount('');
+      if (response.goldCoins !== undefined) {
+        const pkg = packages.find((p) => p._id === selectedPackage);
+        setSuccess(
+          `Purchase successful! You received ${pkg?.goldCoins?.toLocaleString() ?? '?'} GC + ${pkg?.bonusSweepCoins ?? '?'} FREE SC`
+        );
+        setSelectedPackage('');
         setTimeout(() => {
           router.push('/dashboard');
         }, 2000);
       } else {
-        setError(response.message || 'Deposit failed');
+        setError(response.message || 'Purchase failed');
       }
     } catch {
-      setError('An error occurred during deposit');
+      setError('An error occurred during purchase');
     } finally {
       setIsLoading(false);
     }
@@ -81,165 +98,180 @@ export default function DepositPage() {
     return null;
   }
 
-  const selectedPaymentMethod = PAYMENT_METHODS.find((m) => m.id === selectedMethod);
+  const selectedPkg = packages.find((p) => p._id === selectedPackage);
+  const cryptoPrice = selectedPkg?.cryptoPrices.find((cp) => cp.currency === selectedCrypto);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 py-12 px-4">
-      <div className="container mx-auto max-w-4xl">
-        {/* Header */}
+      <div className="container mx-auto max-w-6xl">
         <div className="mb-8">
           <Link href="/dashboard" className="text-yellow-400 hover:text-yellow-300 mb-4 inline-block">
-            ← Back to Dashboard
+            &larr; Back to Dashboard
           </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">Make a Deposit</h1>
-          <p className="text-gray-300">Add funds to your account securely</p>
+          <h1 className="text-4xl font-bold text-white mb-2">Buy Gold Coins</h1>
+          <p className="text-gray-300">
+            Purchase Gold Coins and receive <span className="text-green-400 font-semibold">FREE Sweep Coins</span> with
+            every package
+          </p>
         </div>
 
+        {error && (
+          <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg mb-6">{error}</div>
+        )}
+        {success && (
+          <div className="bg-green-500/20 border border-green-500 text-green-200 px-4 py-3 rounded-lg mb-6">
+            {success}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Deposit Form */}
           <div className="lg:col-span-2">
-            <div className="bg-gray-800/50 backdrop-blur-lg border border-purple-500/20 rounded-xl p-8">
-              {error && (
-                <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg mb-6">
-                  {error}
-                </div>
-              )}
-
-              {success && (
-                <div className="bg-green-500/20 border border-green-500 text-green-200 px-4 py-3 rounded-lg mb-6">
-                  {success}
-                </div>
-              )}
-
-              <form onSubmit={handleDeposit} className="space-y-6">
-                {/* Payment Method Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-4">
-                    Select Payment Method
-                  </label>
-                  <div className="grid grid-cols-2 gap-4">
-                    {PAYMENT_METHODS.map((method) => (
+            <form onSubmit={handlePurchase}>
+              {/* Coin Packages */}
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-white mb-4">Select a Package</h2>
+                {packagesLoading ? (
+                  <div className="text-gray-400">Loading packages...</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {packages.map((pkg) => (
                       <button
-                        key={method.id}
+                        key={pkg._id}
                         type="button"
-                        onClick={() => setSelectedMethod(method.id)}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          selectedMethod === method.id
-                            ? 'border-yellow-400 bg-yellow-400/10'
-                            : 'border-gray-600 bg-gray-700/30 hover:border-gray-500'
+                        onClick={() => setSelectedPackage(pkg._id)}
+                        className={`relative p-6 rounded-xl border-2 text-left transition-all ${
+                          selectedPackage === pkg._id
+                            ? 'border-yellow-400 bg-yellow-400/10 shadow-lg shadow-yellow-400/20'
+                            : 'border-gray-600 bg-gray-800/50 hover:border-gray-500'
                         }`}
                       >
-                        <div className="text-3xl mb-2">{method.icon}</div>
-                        <div className="text-white font-medium text-sm">{method.name}</div>
+                        {pkg.isPopular && (
+                          <span className="absolute -top-3 right-4 bg-yellow-400 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
+                            POPULAR
+                          </span>
+                        )}
+                        {pkg.discount > 0 && (
+                          <span className="absolute -top-3 left-4 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                            {pkg.discount}% OFF
+                          </span>
+                        )}
+                        <div className="text-2xl font-bold text-yellow-400 mb-1">
+                          {pkg.goldCoins.toLocaleString()} GC
+                        </div>
+                        <div className="text-green-400 font-semibold text-sm mb-3">
+                          + {pkg.bonusSweepCoins} FREE Sweep Coins
+                        </div>
+                        <div className="text-gray-400 text-sm">{pkg.priceUSDT} USDT equivalent</div>
                       </button>
                     ))}
                   </div>
-                </div>
+                )}
+              </div>
 
-                {/* Amount Input */}
-                <div>
-                  <label htmlFor="amount" className="block text-sm font-medium text-gray-300 mb-2">
-                    Deposit Amount
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl">
-                      $
-                    </span>
-                    <input
-                      id="amount"
-                      name="amount"
-                      type="number"
-                      step="0.01"
-                      min={selectedPaymentMethod?.min}
-                      max={selectedPaymentMethod?.max}
-                      required
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="w-full pl-10 pr-4 py-4 bg-gray-700/50 border border-gray-600 rounded-lg text-white text-xl placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all"
-                      placeholder="0.00"
-                    />
+              {/* Crypto Selection */}
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-white mb-4">Pay With</h2>
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                  {CRYPTO_OPTIONS.map((crypto) => (
+                    <button
+                      key={crypto.id}
+                      type="button"
+                      onClick={() => setSelectedCrypto(crypto.id)}
+                      className={`p-3 rounded-lg border-2 text-center transition-all ${
+                        selectedCrypto === crypto.id
+                          ? 'border-yellow-400 bg-yellow-400/10'
+                          : 'border-gray-600 bg-gray-700/30 hover:border-gray-500'
+                      }`}
+                    >
+                      <div className="text-xl mb-1">{crypto.icon}</div>
+                      <div className="text-white text-xs font-medium">{crypto.id}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Price Summary */}
+              {selectedPkg && (
+                <div className="bg-gray-800/80 border border-purple-500/30 rounded-xl p-6 mb-6">
+                  <h3 className="text-white font-bold mb-3">Order Summary</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between text-gray-300">
+                      <span>Package</span>
+                      <span className="text-white">{selectedPkg.name}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span>Gold Coins</span>
+                      <span className="text-yellow-400 font-semibold">
+                        {selectedPkg.goldCoins.toLocaleString()} GC
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span>FREE Sweep Coins</span>
+                      <span className="text-green-400 font-semibold">{selectedPkg.bonusSweepCoins} SC</span>
+                    </div>
+                    <hr className="border-gray-700" />
+                    <div className="flex justify-between text-white font-bold text-base">
+                      <span>Total ({selectedCrypto})</span>
+                      <span>
+                        {cryptoPrice ? `${cryptoPrice.amount} ${selectedCrypto}` : `${selectedPkg.priceUSDT} USDT eq.`}
+                      </span>
+                    </div>
                   </div>
-                  {selectedPaymentMethod && (
-                    <p className="mt-2 text-sm text-gray-400">
-                      Min: ${selectedPaymentMethod.min} | Max: ${selectedPaymentMethod.max.toLocaleString()}
-                    </p>
-                  )}
                 </div>
+              )}
 
-                {/* Quick Amount Buttons */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Quick Select
-                  </label>
-                  <div className="grid grid-cols-4 gap-3">
-                    {[25, 50, 100, 500].map((quickAmount) => (
-                      <button
-                        key={quickAmount}
-                        type="button"
-                        onClick={() => setAmount(quickAmount.toString())}
-                        className="py-2 px-4 bg-gray-700/50 border border-gray-600 rounded-lg text-white hover:border-yellow-400 hover:bg-yellow-400/10 transition-all"
-                      >
-                        ${quickAmount}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-4 px-6 bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold text-lg rounded-lg hover:from-yellow-500 hover:to-yellow-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  {isLoading ? 'Processing...' : `Deposit $${amount || '0.00'}`}
-                </button>
-              </form>
-            </div>
+              <button
+                type="submit"
+                disabled={isLoading || !selectedPackage}
+                className="w-full py-4 px-6 bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold text-lg rounded-lg hover:from-yellow-500 hover:to-yellow-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {isLoading ? 'Processing...' : 'Buy Gold Coins'}
+              </button>
+            </form>
           </div>
 
-          {/* Info Sidebar */}
+          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Current Balance */}
-            <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-xl p-6 text-white">
-              <div className="text-sm opacity-90 mb-1">Current Balance</div>
-              <div className="text-3xl font-bold">${user.balance.toFixed(2)}</div>
+            <div className="bg-gradient-to-br from-yellow-500 to-yellow-700 rounded-xl p-6 text-white">
+              <div className="text-sm opacity-90 mb-1">Gold Coins</div>
+              <div className="text-3xl font-bold">{formatGC(user.goldCoins)}</div>
             </div>
 
-            {/* Deposit Info */}
+            <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-xl p-6 text-white">
+              <div className="text-sm opacity-90 mb-1">Sweep Coins</div>
+              <div className="text-3xl font-bold">{formatSC(user.sweepCoins)}</div>
+            </div>
+
             <div className="bg-gray-800/50 backdrop-blur-lg border border-purple-500/20 rounded-xl p-6">
-              <h3 className="text-white font-bold text-lg mb-4">Deposit Information</h3>
+              <h3 className="text-white font-bold text-lg mb-4">How It Works</h3>
               <ul className="space-y-3 text-sm text-gray-300">
                 <li className="flex items-start">
-                  <span className="text-green-400 mr-2">✓</span>
-                  <span>Instant deposits - play immediately</span>
+                  <span className="text-yellow-400 mr-2 font-bold">1.</span>
+                  <span>Select a Gold Coin package above</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-green-400 mr-2">✓</span>
-                  <span>Secure SSL encryption</span>
+                  <span className="text-yellow-400 mr-2 font-bold">2.</span>
+                  <span>Choose your preferred cryptocurrency</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-green-400 mr-2">✓</span>
-                  <span>Multiple payment options</span>
+                  <span className="text-yellow-400 mr-2 font-bold">3.</span>
+                  <span>Complete the payment</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-green-400 mr-2">✓</span>
-                  <span>24/7 customer support</span>
+                  <span className="text-yellow-400 mr-2 font-bold">4.</span>
+                  <span>
+                    Receive GC instantly + <span className="text-green-400">FREE SC</span>
+                  </span>
                 </li>
               </ul>
             </div>
 
-            {/* Responsible Gaming */}
-            <div className="bg-gray-800/50 backdrop-blur-lg border border-purple-500/20 rounded-xl p-6">
-              <h3 className="text-white font-bold text-lg mb-4">Responsible Gaming</h3>
-              <p className="text-sm text-gray-300 mb-4">
-                Set deposit limits to stay in control of your spending.
+            <div className="bg-green-900/30 border border-green-500/30 rounded-xl p-6">
+              <h3 className="text-green-400 font-bold text-lg mb-2">FREE Sweep Coins</h3>
+              <p className="text-sm text-gray-300">
+                Every Gold Coin purchase includes FREE Sweep Coins. SC can be used in prize-eligible games and redeemed
+                for crypto prizes!
               </p>
-              <Link
-                href="/dashboard"
-                className="text-yellow-400 hover:text-yellow-300 text-sm font-medium"
-              >
-                Manage Limits →
-              </Link>
             </div>
           </div>
         </div>
@@ -247,3 +279,90 @@ export default function DepositPage() {
     </div>
   );
 }
+
+const FALLBACK_PACKAGES: CoinPackage[] = [
+  {
+    _id: 'pkg-1',
+    name: 'Starter',
+    slug: 'starter',
+    goldCoins: 5000,
+    bonusSweepCoins: 5,
+    priceUSDT: 4.99,
+    cryptoPrices: [
+      { currency: 'BTC', amount: 0.00005 },
+      { currency: 'ETH', amount: 0.0015 },
+      { currency: 'USDT', amount: 4.99 },
+      { currency: 'USDC', amount: 4.99 },
+      { currency: 'SOL', amount: 0.035 },
+      { currency: 'DOGE', amount: 25 },
+      { currency: 'LTC', amount: 0.05 },
+    ],
+    isPopular: false,
+    isActive: true,
+    discount: 0,
+    sortOrder: 1,
+  },
+  {
+    _id: 'pkg-2',
+    name: 'Popular',
+    slug: 'popular',
+    goldCoins: 25000,
+    bonusSweepCoins: 25,
+    priceUSDT: 19.99,
+    cryptoPrices: [
+      { currency: 'BTC', amount: 0.0002 },
+      { currency: 'ETH', amount: 0.006 },
+      { currency: 'USDT', amount: 19.99 },
+      { currency: 'USDC', amount: 19.99 },
+      { currency: 'SOL', amount: 0.14 },
+      { currency: 'DOGE', amount: 100 },
+      { currency: 'LTC', amount: 0.2 },
+    ],
+    isPopular: true,
+    isActive: true,
+    discount: 0,
+    sortOrder: 2,
+  },
+  {
+    _id: 'pkg-3',
+    name: 'Premium',
+    slug: 'premium',
+    goldCoins: 100000,
+    bonusSweepCoins: 100,
+    priceUSDT: 49.99,
+    cryptoPrices: [
+      { currency: 'BTC', amount: 0.0005 },
+      { currency: 'ETH', amount: 0.015 },
+      { currency: 'USDT', amount: 49.99 },
+      { currency: 'USDC', amount: 49.99 },
+      { currency: 'SOL', amount: 0.35 },
+      { currency: 'DOGE', amount: 250 },
+      { currency: 'LTC', amount: 0.5 },
+    ],
+    isPopular: false,
+    isActive: true,
+    discount: 10,
+    sortOrder: 3,
+  },
+  {
+    _id: 'pkg-4',
+    name: 'Whale',
+    slug: 'whale',
+    goldCoins: 500000,
+    bonusSweepCoins: 500,
+    priceUSDT: 199.99,
+    cryptoPrices: [
+      { currency: 'BTC', amount: 0.002 },
+      { currency: 'ETH', amount: 0.06 },
+      { currency: 'USDT', amount: 199.99 },
+      { currency: 'USDC', amount: 199.99 },
+      { currency: 'SOL', amount: 1.4 },
+      { currency: 'DOGE', amount: 1000 },
+      { currency: 'LTC', amount: 2.0 },
+    ],
+    isPopular: false,
+    isActive: true,
+    discount: 20,
+    sortOrder: 4,
+  },
+];

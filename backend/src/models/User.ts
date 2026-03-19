@@ -1,5 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface ICryptoAddress {
+  currency: string;
+  address: string;
+  label?: string;
+  addedAt: Date;
+}
+
 export interface IUser extends Document {
   username: string;
   email: string;
@@ -14,8 +21,11 @@ export interface IUser extends Document {
     country?: string;
     zipCode?: string;
   };
-  balance: number;
-  bonusBalance: number;
+  goldCoins: number;
+  sweepCoins: number;
+  bonusSweepCoins: number;
+  lastDailyBonus?: Date;
+  cryptoAddresses: ICryptoAddress[];
   isVerified: boolean;
   verificationToken?: string;
   passwordResetToken?: string;
@@ -24,7 +34,7 @@ export interface IUser extends Document {
   kycDocuments?: string[];
   vipLevel: 'bronze' | 'silver' | 'gold' | 'platinum';
   responsibleGaming: {
-    depositLimit?: {
+    purchaseLimit?: {
       daily?: number;
       weekly?: number;
       monthly?: number;
@@ -60,8 +70,16 @@ const UserSchema: Schema = new Schema(
       country: { type: String },
       zipCode: { type: String },
     },
-    balance: { type: Number, default: 0 },
-    bonusBalance: { type: Number, default: 0 },
+    goldCoins: { type: Number, default: 0, min: 0 },
+    sweepCoins: { type: Number, default: 0, min: 0 },
+    bonusSweepCoins: { type: Number, default: 0, min: 0 },
+    lastDailyBonus: { type: Date, default: null },
+    cryptoAddresses: [{
+      currency: { type: String },
+      address: { type: String },
+      label: { type: String },
+      addedAt: { type: Date, default: Date.now },
+    }],
     isVerified: { type: Boolean, default: false },
     verificationToken: { type: String },
     passwordResetToken: { type: String },
@@ -78,7 +96,7 @@ const UserSchema: Schema = new Schema(
       default: 'bronze' 
     },
     responsibleGaming: {
-      depositLimit: {
+      purchaseLimit: {
         daily: { type: Number },
         weekly: { type: Number },
         monthly: { type: Number },

@@ -10,20 +10,20 @@ export default function Footer() {
             <h3 className="text-white font-bold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li><Link href="/games" className="hover:text-yellow-400 transition-colors">Games</Link></li>
-              <li><Link href="/live-casino" className="hover:text-yellow-400 transition-colors">Live Casino</Link></li>
               <li><Link href="/promotions" className="hover:text-yellow-400 transition-colors">Promotions</Link></li>
               <li><Link href="/vip" className="hover:text-yellow-400 transition-colors">VIP Program</Link></li>
+              <li><Link href="/deposit" className="hover:text-yellow-400 transition-colors">Buy Gold Coins</Link></li>
             </ul>
           </div>
 
           {/* Help */}
           <div>
-            <h3 className="text-white font-bold mb-4">Help & Support</h3>
+            <h3 className="text-white font-bold mb-4">Help &amp; Support</h3>
             <ul className="space-y-2">
               <li><Link href="/faq" className="hover:text-yellow-400 transition-colors">FAQ</Link></li>
               <li><Link href="/contact" className="hover:text-yellow-400 transition-colors">Contact Us</Link></li>
               <li><Link href="/about" className="hover:text-yellow-400 transition-colors">About Us</Link></li>
-              <li><Link href="/banking" className="hover:text-yellow-400 transition-colors">Banking</Link></li>
+              <li><Link href="/kyc" className="hover:text-yellow-400 transition-colors">KYC Verification</Link></li>
             </ul>
           </div>
 
@@ -31,10 +31,10 @@ export default function Footer() {
           <div>
             <h3 className="text-white font-bold mb-4">Legal</h3>
             <ul className="space-y-2">
-              <li><Link href="/terms" className="hover:text-yellow-400 transition-colors">Terms & Conditions</Link></li>
+              <li><Link href="/terms" className="hover:text-yellow-400 transition-colors">Terms &amp; Conditions</Link></li>
               <li><Link href="/privacy" className="hover:text-yellow-400 transition-colors">Privacy Policy</Link></li>
               <li><Link href="/responsible-gaming" className="hover:text-yellow-400 transition-colors">Responsible Gaming</Link></li>
-              <li><Link href="/licensing" className="hover:text-yellow-400 transition-colors">Licensing Info</Link></li>
+              <li><Link href="/sweepstakes-rules" className="hover:text-yellow-400 transition-colors">Sweepstakes Rules</Link></li>
             </ul>
           </div>
 
@@ -51,28 +51,41 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Payment Methods & License */}
+        {/* Accepted Crypto */}
         <div className="mt-12 pt-8 border-t border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
-              <p className="text-sm mb-2">Accepted Payment Methods:</p>
-              <div className="flex space-x-4 text-2xl">
-                <span>💳</span>
-                <span>💰</span>
-                <span>🏦</span>
-                <span>₿</span>
+              <p className="text-sm mb-2">Accepted Cryptocurrencies:</p>
+              <div className="flex space-x-4 text-sm font-mono font-bold text-gray-400">
+                <span>BTC</span>
+                <span>ETH</span>
+                <span>USDT</span>
+                <span>USDC</span>
+                <span>SOL</span>
+                <span>DOGE</span>
+                <span>LTC</span>
               </div>
             </div>
             <div className="text-center md:text-right">
-              <p className="text-sm mb-2">🛡️ Fully Licensed & Regulated</p>
-              <p className="text-xs text-gray-500">© 2025 Cassanova. All rights reserved.</p>
+              <p className="text-xs text-gray-500">&copy; 2026 Cassanova. All rights reserved.</p>
             </div>
           </div>
         </div>
 
-        {/* Responsible Gaming Notice */}
-        <div className="mt-8 pt-8 border-t border-gray-800 text-center text-sm text-gray-500">
-          <p>🔞 18+ Only. Gambling can be addictive. Please play responsibly.</p>
+        {/* Sweepstakes Disclaimer */}
+        <div className="mt-8 pt-8 border-t border-gray-800 text-center text-xs text-gray-500 space-y-2">
+          <p>
+            18+ only (21+ in some jurisdictions). No purchase necessary to obtain Sweep Coins.
+            Void where prohibited by law.
+          </p>
+          <p>
+            Gold Coins have no cash value and cannot be redeemed for prizes.
+            Sweep Coins are provided FREE and can be redeemed for cryptocurrency prizes.
+          </p>
+          <p>
+            Alternative method of entry available. See official sweepstakes rules for details.
+            Please play responsibly.
+          </p>
         </div>
       </div>
     </footer>

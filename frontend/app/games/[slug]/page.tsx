@@ -8,6 +8,8 @@ import { Game } from '@/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
+type PlayMode = 'gc' | 'sc';
+
 export default function GameDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -18,27 +20,27 @@ export default function GameDetailPage() {
   const [error, setError] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [playMode, setPlayMode] = useState<PlayMode>('gc');
 
   useEffect(() => {
     const fetchGameData = async () => {
       try {
         const slug = params.slug as string;
-        
+
         const gameData = await api.games.getBySlug(slug);
-        
+
         if (gameData._id) {
           setGame(gameData);
-          
-          // Check if game is in user's favorites
+
           if (isAuthenticated && token && user) {
             try {
               const profileData = await api.user.getProfile(token);
               setIsFavorite(profileData.favoriteGames?.includes(gameData._id) || false);
             } catch {
-              // If profile fetch fails, just continue without favorite status
+              // continue without favorite status
             }
           }
-          
+
           const allGames = await api.games.getAll({ category: gameData.category });
           const similar = allGames.filter((g: Game) => g._id !== gameData._id).slice(0, 4);
           setSimilarGames(similar);
@@ -60,8 +62,8 @@ export default function GameDetailPage() {
       router.push('/login');
       return;
     }
-    // In a real app, this would launch the game
-    alert(`Launching ${game?.title} in ${mode} mode!`);
+    const coinType = playMode === 'gc' ? 'Gold Coins (fun mode)' : 'Sweep Coins (prize mode)';
+    alert(`Launching ${game?.title} with ${coinType}!`);
   };
 
   const handleToggleFavorite = async () => {
@@ -97,17 +99,21 @@ export default function GameDetailPage() {
         <div className="text-center">
           <p className="text-red-400 text-xl mb-4">{error || 'Game not found'}</p>
           <Link href="/" className="text-yellow-400 hover:text-yellow-300">
-            ← Back to Home
+            &larr; Back to Home
           </Link>
         </div>
       </div>
     );
   }
 
-  const volatilityColors = {
+  const volatilityColors: Record<string, string> = {
     low: 'text-green-400',
     medium: 'text-yellow-400',
     high: 'text-red-400',
+  };
+
+  const formatBetBoth = (amount: number) => {
+    return `${(amount * 100).toLocaleString()} GC / ${amount.toFixed(2)} SC`;
   };
 
   return (
@@ -133,15 +139,10 @@ export default function GameDetailPage() {
             <div className="bg-gray-800/50 backdrop-blur-lg border border-purple-500/20 rounded-xl overflow-hidden">
               {/* Game Image */}
               <div className="relative aspect-video bg-gray-700">
-                <Image
-                  src={game.thumbnail}
-                  alt={game.title}
-                  fill
-                  className="object-cover"
-                />
+                <Image src={game.thumbnail} alt={game.title} fill className="object-cover" />
                 {game.hasJackpot && game.jackpotAmount && (
                   <div className="absolute top-4 right-4 bg-yellow-500 text-gray-900 px-4 py-2 rounded-full font-bold">
-                    💰 ${game.jackpotAmount.toLocaleString()}
+                    &#x2B50; {game.jackpotAmount.toLocaleString()} SC
                   </div>
                 )}
                 {game.isNew && (
@@ -154,7 +155,7 @@ export default function GameDetailPage() {
               {/* Game Info */}
               <div className="p-8">
                 <h1 className="text-4xl font-bold text-white mb-4">{game.title}</h1>
-                
+
                 <div className="flex flex-wrap gap-4 mb-6">
                   <div className="flex items-center space-x-2">
                     <span className="text-gray-400">Provider:</span>
@@ -162,21 +163,55 @@ export default function GameDetailPage() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-gray-400">Category:</span>
-                    <span className="text-white font-semibold capitalize">
-                      {game.category.replace('-', ' ')}
-                    </span>
+                    <span className="text-white font-semibold capitalize">{game.category.replace('-', ' ')}</span>
                   </div>
                 </div>
 
                 <p className="text-gray-300 mb-6 leading-relaxed">{game.description}</p>
 
+                {/* Play Mode Toggle */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">Play Mode</label>
+                  <div className="flex rounded-lg overflow-hidden border border-gray-600 w-fit">
+                    <button
+                      onClick={() => setPlayMode('gc')}
+                      className={`px-6 py-3 font-semibold text-sm transition-all ${
+                        playMode === 'gc'
+                          ? 'bg-yellow-400 text-gray-900'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      Gold Coins (Fun)
+                    </button>
+                    <button
+                      onClick={() => setPlayMode('sc')}
+                      className={`px-6 py-3 font-semibold text-sm transition-all ${
+                        playMode === 'sc'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      Sweep Coins (Prizes)
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {playMode === 'gc'
+                      ? 'Gold Coins mode is for entertainment only. GC have no cash value.'
+                      : 'Sweep Coins winnings can be redeemed for crypto prizes.'}
+                  </p>
+                </div>
+
                 {/* Play Buttons */}
                 <div className="flex flex-wrap gap-4">
                   <button
                     onClick={() => handlePlayGame('real')}
-                    className="flex-1 min-w-[200px] py-4 px-6 bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold text-lg rounded-lg hover:from-yellow-500 hover:to-yellow-700 transition-all transform hover:scale-105"
+                    className={`flex-1 min-w-[200px] py-4 px-6 font-bold text-lg rounded-lg transition-all transform hover:scale-105 ${
+                      playMode === 'gc'
+                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 hover:from-yellow-500 hover:to-yellow-700'
+                        : 'bg-gradient-to-r from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700'
+                    }`}
                   >
-                    Play Now 🎰
+                    {playMode === 'gc' ? 'Play with GC' : 'Play for Prizes (SC)'}
                   </button>
                   {game.demoAvailable && (
                     <button
@@ -190,13 +225,11 @@ export default function GameDetailPage() {
                     onClick={handleToggleFavorite}
                     disabled={favoriteLoading}
                     className={`py-4 px-6 font-bold text-lg rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 ${
-                      isFavorite
-                        ? 'bg-red-500 hover:bg-red-600 text-white'
-                        : 'bg-gray-700 hover:bg-gray-600 text-white'
+                      isFavorite ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'
                     }`}
                     title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                   >
-                    {favoriteLoading ? '...' : isFavorite ? '❤️' : '🤍'}
+                    {favoriteLoading ? '...' : isFavorite ? '\u2764\uFE0F' : '\uD83E\uDD0D'}
                   </button>
                 </div>
               </div>
@@ -214,17 +247,10 @@ export default function GameDetailPage() {
                       className="group bg-gray-800/50 rounded-lg overflow-hidden hover:ring-2 hover:ring-yellow-400 transition-all"
                     >
                       <div className="relative aspect-square bg-gray-700">
-                        <Image
-                          src={similarGame.thumbnail}
-                          alt={similarGame.title}
-                          fill
-                          className="object-cover"
-                        />
+                        <Image src={similarGame.thumbnail} alt={similarGame.title} fill className="object-cover" />
                       </div>
                       <div className="p-3">
-                        <h3 className="text-white font-semibold text-sm truncate">
-                          {similarGame.title}
-                        </h3>
+                        <h3 className="text-white font-semibold text-sm truncate">{similarGame.title}</h3>
                         <p className="text-gray-400 text-xs">{similarGame.provider}</p>
                       </div>
                     </Link>
@@ -252,12 +278,18 @@ export default function GameDetailPage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400">Min Bet</span>
-                  <span className="text-white font-semibold">${game.minBet}</span>
+                  <span className="text-white font-semibold">{formatBetBoth(game.minBet)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400">Max Bet</span>
-                  <span className="text-white font-semibold">${game.maxBet}</span>
+                  <span className="text-white font-semibold">{formatBetBoth(game.maxBet)}</span>
                 </div>
+                {game.hasJackpot && game.jackpotAmount && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Jackpot</span>
+                    <span className="text-yellow-400 font-bold">{game.jackpotAmount.toLocaleString()} SC</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -267,10 +299,7 @@ export default function GameDetailPage() {
                 <h3 className="text-white font-bold text-lg mb-4">Features</h3>
                 <div className="flex flex-wrap gap-2">
                   {game.features.map((feature, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm"
-                    >
+                    <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">
                       {feature}
                     </span>
                   ))}
@@ -283,19 +312,19 @@ export default function GameDetailPage() {
               <h3 className="text-white font-bold text-lg mb-4">Why Play This Game?</h3>
               <ul className="space-y-3 text-sm text-gray-300">
                 <li className="flex items-start">
-                  <span className="text-yellow-400 mr-2">✓</span>
-                  <span>Certified fair gaming</span>
+                  <span className="text-yellow-400 mr-2">&#x2713;</span>
+                  <span>Provably fair gaming</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-yellow-400 mr-2">✓</span>
+                  <span className="text-yellow-400 mr-2">&#x2713;</span>
                   <span>Mobile friendly</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-yellow-400 mr-2">✓</span>
-                  <span>Fast payouts</span>
+                  <span className="text-yellow-400 mr-2">&#x2713;</span>
+                  <span>Play with GC (fun) or SC (prizes)</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-yellow-400 mr-2">✓</span>
+                  <span className="text-yellow-400 mr-2">&#x2713;</span>
                   <span>Instant play - no download</span>
                 </li>
               </ul>

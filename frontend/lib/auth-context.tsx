@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User } from '@/types';
 
 interface AuthContextType {
@@ -8,7 +8,10 @@ interface AuthContextType {
   token: string | null;
   login: (token: string, user: User) => void;
   logout: () => void;
+  updateUser: (user: User) => void;
   isAuthenticated: boolean;
+  formatGC: (amount: number) => string;
+  formatSC: (amount: number) => string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,6 +44,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('user');
   };
 
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
+  const formatGC = useCallback((amount: number) => {
+    return `${amount.toLocaleString()} GC`;
+  }, []);
+
+  const formatSC = useCallback((amount: number) => {
+    return `${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SC`;
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -48,7 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         login,
         logout,
+        updateUser,
         isAuthenticated: !!token,
+        formatGC,
+        formatSC,
       }}
     >
       {children}

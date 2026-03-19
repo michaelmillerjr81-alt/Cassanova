@@ -5,18 +5,26 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
+import { CryptoCurrency } from '@/types';
 
-const PAYMENT_METHODS = [
-  { id: 'bank-transfer', name: 'Bank Transfer', icon: '🏦', min: 50, max: 100000 },
-  { id: 'crypto', name: 'Cryptocurrency', icon: '₿', min: 20, max: 50000 },
-  { id: 'e-wallet', name: 'E-Wallet', icon: '💰', min: 10, max: 5000 },
+const MIN_REDEMPTION = 100;
+
+const CRYPTO_OPTIONS: { id: CryptoCurrency; name: string; icon: string }[] = [
+  { id: 'BTC', name: 'Bitcoin', icon: '₿' },
+  { id: 'ETH', name: 'Ethereum', icon: 'Ξ' },
+  { id: 'USDT', name: 'Tether', icon: '₮' },
+  { id: 'USDC', name: 'USD Coin', icon: '$' },
+  { id: 'SOL', name: 'Solana', icon: '◎' },
+  { id: 'DOGE', name: 'Dogecoin', icon: 'Ð' },
+  { id: 'LTC', name: 'Litecoin', icon: 'Ł' },
 ];
 
-export default function WithdrawPage() {
+export default function RedeemPage() {
   const router = useRouter();
-  const { user, token, isAuthenticated } = useAuth();
+  const { user, token, isAuthenticated, formatSC } = useAuth();
   const [amount, setAmount] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState(PAYMENT_METHODS[0].id);
+  const [selectedCrypto, setSelectedCrypto] = useState<CryptoCurrency>('BTC');
+  const [walletAddress, setWalletAddress] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,15 +35,12 @@ export default function WithdrawPage() {
     }
   }, [isAuthenticated, router]);
 
-  const handleWithdraw = async (e: React.FormEvent) => {
+  const handleRedeem = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    const withdrawAmount = parseFloat(amount);
-    const method = PAYMENT_METHODS.find((m) => m.id === selectedMethod);
-
-    if (!method) return;
+    const redeemAmount = parseFloat(amount);
 
     if (!user) {
       setError('User information not found');
@@ -43,49 +48,51 @@ export default function WithdrawPage() {
     }
 
     if (user.kycStatus !== 'verified') {
-      setError('KYC verification is required for withdrawals. Please complete your verification first.');
+      setError('KYC verification is required to redeem Sweep Coins. Please complete your verification first.');
       return;
     }
 
-    if (withdrawAmount < method.min) {
-      setError(`Minimum withdrawal for ${method.name} is $${method.min}`);
+    if (!redeemAmount || redeemAmount < MIN_REDEMPTION) {
+      setError(`Minimum redemption is ${MIN_REDEMPTION} SC`);
       return;
     }
 
-    if (withdrawAmount > method.max) {
-      setError(`Maximum withdrawal for ${method.name} is $${method.max}`);
+    if (redeemAmount > user.sweepCoins) {
+      setError('Insufficient Sweep Coins');
       return;
     }
 
-    if (withdrawAmount > user.balance) {
-      setError('Insufficient balance');
+    if (!walletAddress.trim()) {
+      setError('Please enter your wallet address');
       return;
     }
 
     if (!token) {
-      setError('You must be logged in to make a withdrawal');
+      setError('You must be logged in');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await api.transactions.withdraw(token, {
-        amount: withdrawAmount,
-        paymentMethod: method.name,
+      const response = await api.packages.redeem(token, {
+        amount: redeemAmount,
+        cryptoCurrency: selectedCrypto,
+        walletAddress: walletAddress.trim(),
       });
 
-      if (response.newBalance !== undefined) {
-        setSuccess(`Withdrawal request submitted! Your new balance is $${response.newBalance.toFixed(2)}`);
+      if (response.sweepCoins !== undefined) {
+        setSuccess(`Redemption request submitted! ${redeemAmount} SC will be sent as ${selectedCrypto} to your wallet.`);
         setAmount('');
+        setWalletAddress('');
         setTimeout(() => {
           router.push('/dashboard');
-        }, 2000);
+        }, 3000);
       } else {
-        setError(response.message || 'Withdrawal failed');
+        setError(response.message || 'Redemption failed');
       }
     } catch {
-      setError('An error occurred during withdrawal');
+      setError('An error occurred during redemption');
     } finally {
       setIsLoading(false);
     }
@@ -95,22 +102,20 @@ export default function WithdrawPage() {
     return null;
   }
 
-  const selectedPaymentMethod = PAYMENT_METHODS.find((m) => m.id === selectedMethod);
+  const quickAmounts = [100, 250, 500, 1000];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 py-12 px-4">
       <div className="container mx-auto max-w-4xl">
-        {/* Header */}
         <div className="mb-8">
           <Link href="/dashboard" className="text-yellow-400 hover:text-yellow-300 mb-4 inline-block">
-            ← Back to Dashboard
+            &larr; Back to Dashboard
           </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">Withdraw Funds</h1>
-          <p className="text-gray-300">Cash out your winnings securely</p>
+          <h1 className="text-4xl font-bold text-white mb-2">Redeem Sweep Coins</h1>
+          <p className="text-gray-300">Convert your Sweep Coin winnings into cryptocurrency prizes</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Withdrawal Form */}
           <div className="lg:col-span-2">
             <div className="bg-gray-800/50 backdrop-blur-lg border border-purple-500/20 rounded-xl p-8">
               {error && (
@@ -118,146 +123,160 @@ export default function WithdrawPage() {
                   {error}
                 </div>
               )}
-
               {success && (
                 <div className="bg-green-500/20 border border-green-500 text-green-200 px-4 py-3 rounded-lg mb-6">
                   {success}
                 </div>
               )}
 
-              {/* KYC Warning */}
               {user.kycStatus !== 'verified' && (
                 <div className="bg-yellow-500/20 border border-yellow-500 text-yellow-200 px-4 py-3 rounded-lg mb-6">
-                  <p className="font-semibold mb-1">⚠️ KYC Verification Required</p>
+                  <p className="font-semibold mb-1">KYC Verification Required</p>
                   <p className="text-sm">
-                    You need to complete KYC verification before you can withdraw funds. Please contact support.
+                    You need to complete KYC verification before you can redeem Sweep Coins.{' '}
+                    <Link href="/kyc" className="underline">
+                      Verify now
+                    </Link>
                   </p>
                 </div>
               )}
 
-              <form onSubmit={handleWithdraw} className="space-y-6">
-                {/* Payment Method Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-4">
-                    Select Withdrawal Method
-                  </label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {PAYMENT_METHODS.map((method) => (
-                      <button
-                        key={method.id}
-                        type="button"
-                        onClick={() => setSelectedMethod(method.id)}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          selectedMethod === method.id
-                            ? 'border-yellow-400 bg-yellow-400/10'
-                            : 'border-gray-600 bg-gray-700/30 hover:border-gray-500'
-                        }`}
-                      >
-                        <div className="text-3xl mb-2">{method.icon}</div>
-                        <div className="text-white font-medium text-sm">{method.name}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Amount Input */}
+              <form onSubmit={handleRedeem} className="space-y-6">
+                {/* SC Amount */}
                 <div>
                   <label htmlFor="amount" className="block text-sm font-medium text-gray-300 mb-2">
-                    Withdrawal Amount
+                    Sweep Coins to Redeem
                   </label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl">
-                      $
-                    </span>
                     <input
                       id="amount"
                       name="amount"
                       type="number"
                       step="0.01"
-                      min={selectedPaymentMethod?.min}
-                      max={Math.min(user.balance, selectedPaymentMethod?.max || user.balance)}
+                      min={MIN_REDEMPTION}
+                      max={user.sweepCoins}
                       required
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
-                      className="w-full pl-10 pr-4 py-4 bg-gray-700/50 border border-gray-600 rounded-lg text-white text-xl placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all"
+                      className="w-full px-4 py-4 bg-gray-700/50 border border-gray-600 rounded-lg text-white text-xl placeholder-gray-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400/20 transition-all"
                       placeholder="0.00"
                     />
+                    <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-green-400 font-semibold">
+                      SC
+                    </span>
                   </div>
-                  {selectedPaymentMethod && (
-                    <p className="mt-2 text-sm text-gray-400">
-                      Min: ${selectedPaymentMethod.min} | Max: ${Math.min(user.balance, selectedPaymentMethod.max).toLocaleString()}
-                    </p>
-                  )}
+                  <p className="mt-2 text-sm text-gray-400">
+                    Min: {MIN_REDEMPTION} SC | Available: {formatSC(user.sweepCoins)}
+                  </p>
                 </div>
 
-                {/* Quick Amount Buttons */}
+                {/* Quick Amounts */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Quick Select
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Quick Select</label>
                   <div className="grid grid-cols-4 gap-3">
-                    {[100, 250, 500, 1000].map((quickAmount) => (
+                    {quickAmounts.map((qa) => (
                       <button
-                        key={quickAmount}
+                        key={qa}
                         type="button"
-                        onClick={() => setAmount(Math.min(quickAmount, user.balance).toString())}
-                        disabled={user.balance < quickAmount}
-                        className="py-2 px-4 bg-gray-700/50 border border-gray-600 rounded-lg text-white hover:border-yellow-400 hover:bg-yellow-400/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => setAmount(Math.min(qa, user.sweepCoins).toString())}
+                        disabled={user.sweepCoins < MIN_REDEMPTION}
+                        className="py-2 px-4 bg-gray-700/50 border border-gray-600 rounded-lg text-white hover:border-green-400 hover:bg-green-400/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        ${quickAmount}
+                        {qa} SC
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Submit Button */}
+                {/* Crypto Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-4">Receive As</label>
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                    {CRYPTO_OPTIONS.map((crypto) => (
+                      <button
+                        key={crypto.id}
+                        type="button"
+                        onClick={() => setSelectedCrypto(crypto.id)}
+                        className={`p-3 rounded-lg border-2 text-center transition-all ${
+                          selectedCrypto === crypto.id
+                            ? 'border-green-400 bg-green-400/10'
+                            : 'border-gray-600 bg-gray-700/30 hover:border-gray-500'
+                        }`}
+                      >
+                        <div className="text-xl mb-1">{crypto.icon}</div>
+                        <div className="text-white text-xs font-medium">{crypto.id}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Wallet Address */}
+                <div>
+                  <label htmlFor="wallet" className="block text-sm font-medium text-gray-300 mb-2">
+                    {selectedCrypto} Wallet Address
+                  </label>
+                  <input
+                    id="wallet"
+                    name="wallet"
+                    type="text"
+                    required
+                    value={walletAddress}
+                    onChange={(e) => setWalletAddress(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400/20 transition-all font-mono text-sm"
+                    placeholder={`Enter your ${selectedCrypto} wallet address`}
+                  />
+                </div>
+
                 <button
                   type="submit"
                   disabled={isLoading || user.kycStatus !== 'verified'}
-                  className="w-full py-4 px-6 bg-gradient-to-r from-blue-400 to-blue-600 text-white font-bold text-lg rounded-lg hover:from-blue-500 hover:to-blue-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full py-4 px-6 bg-gradient-to-r from-green-400 to-green-600 text-white font-bold text-lg rounded-lg hover:from-green-500 hover:to-green-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  {isLoading ? 'Processing...' : `Withdraw $${amount || '0.00'}`}
+                  {isLoading ? 'Processing...' : `Redeem ${amount || '0'} SC`}
                 </button>
               </form>
             </div>
           </div>
 
-          {/* Info Sidebar */}
+          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Available Balance */}
-            <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl p-6 text-white">
-              <div className="text-sm opacity-90 mb-1">Available Balance</div>
-              <div className="text-3xl font-bold">${user.balance.toFixed(2)}</div>
+            <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-xl p-6 text-white">
+              <div className="text-sm opacity-90 mb-1">Available Sweep Coins</div>
+              <div className="text-3xl font-bold">{formatSC(user.sweepCoins)}</div>
             </div>
 
-            {/* KYC Status */}
-            <div className={`bg-gradient-to-br ${user.kycStatus === 'verified' ? 'from-green-500 to-green-700' : 'from-yellow-500 to-yellow-700'} rounded-xl p-6 text-white`}>
+            <div
+              className={`bg-gradient-to-br ${
+                user.kycStatus === 'verified' ? 'from-blue-500 to-blue-700' : 'from-yellow-500 to-yellow-700'
+              } rounded-xl p-6 text-white`}
+            >
               <div className="text-sm opacity-90 mb-1">KYC Status</div>
               <div className="text-2xl font-bold capitalize">{user.kycStatus}</div>
               {user.kycStatus !== 'verified' && (
-                <p className="text-sm mt-2 opacity-90">Verification required for withdrawals</p>
+                <Link href="/kyc" className="text-sm mt-2 opacity-90 underline inline-block">
+                  Complete verification
+                </Link>
               )}
             </div>
 
-            {/* Withdrawal Info */}
             <div className="bg-gray-800/50 backdrop-blur-lg border border-purple-500/20 rounded-xl p-6">
-              <h3 className="text-white font-bold text-lg mb-4">Withdrawal Information</h3>
+              <h3 className="text-white font-bold text-lg mb-4">Redemption Info</h3>
               <ul className="space-y-3 text-sm text-gray-300">
                 <li className="flex items-start">
-                  <span className="text-blue-400 mr-2">•</span>
-                  <span>Processing time: 1-5 business days</span>
+                  <span className="text-green-400 mr-2">&#8226;</span>
+                  <span>Minimum redemption: {MIN_REDEMPTION} SC</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-blue-400 mr-2">•</span>
+                  <span className="text-green-400 mr-2">&#8226;</span>
+                  <span>1 SC = ~1 USDT in crypto value</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-400 mr-2">&#8226;</span>
+                  <span>Processing time: 1-24 hours</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-400 mr-2">&#8226;</span>
                   <span>KYC verification required</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-400 mr-2">•</span>
-                  <span>Secure and encrypted</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-400 mr-2">•</span>
-                  <span>24/7 support available</span>
                 </li>
               </ul>
             </div>

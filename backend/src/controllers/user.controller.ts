@@ -37,11 +37,11 @@ export const updateUserProfile = async (req: AuthRequest, res: Response) => {
 
 export const updateResponsibleGaming = async (req: AuthRequest, res: Response) => {
   try {
-    const { depositLimit, lossLimit, sessionTimeLimit } = req.body;
+    const { purchaseLimit, lossLimit, sessionTimeLimit } = req.body;
     const user = await User.findByIdAndUpdate(
       req.userId,
       {
-        'responsibleGaming.depositLimit': depositLimit,
+        'responsibleGaming.purchaseLimit': purchaseLimit,
         'responsibleGaming.lossLimit': lossLimit,
         'responsibleGaming.sessionTimeLimit': sessionTimeLimit,
       },

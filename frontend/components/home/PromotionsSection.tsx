@@ -4,23 +4,23 @@ export default function PromotionsSection() {
   const promotions = [
     {
       id: 1,
-      title: 'Weekly Cashback',
-      description: 'Get up to 20% cashback on your losses every week',
-      icon: '💵',
+      title: 'Daily FREE SC',
+      description: 'Claim 1,000 GC + 0.30 FREE Sweep Coins every day just by logging in',
+      icon: '&#x1F381;',
       color: 'from-green-500 to-emerald-600',
     },
     {
       id: 2,
       title: 'Friday Free Spins',
-      description: '50 Free Spins every Friday on selected games',
-      icon: '🎡',
+      description: '50 Free Spins every Friday on selected games using Sweep Coins',
+      icon: '&#x1F3A1;',
       color: 'from-blue-500 to-cyan-600',
     },
     {
       id: 3,
-      title: 'Reload Bonus',
-      description: '100% match up to $200 on your next deposit',
-      icon: '🎁',
+      title: 'Purchase Bonus',
+      description: 'Get 2x Sweep Coins FREE with your next Gold Coin purchase',
+      icon: '&#x1FA99;',
       color: 'from-purple-500 to-pink-600',
     },
   ];
@@ -30,7 +30,7 @@ export default function PromotionsSection() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold mb-4">Hot Promotions</h2>
-          <p className="text-lg text-gray-300">Exclusive offers and bonuses for our players</p>
+          <p className="text-lg text-gray-300">Exclusive offers and FREE Sweep Coins for our players</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
@@ -40,7 +40,7 @@ export default function PromotionsSection() {
               className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-8 border-2 border-gray-700 hover:border-yellow-400 transition-all transform hover:scale-105 cursor-pointer shadow-xl"
             >
               <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${promo.color} flex items-center justify-center text-3xl mb-4 shadow-lg`}>
-                {promo.icon}
+                <span dangerouslySetInnerHTML={{ __html: promo.icon }} />
               </div>
               <h3 className="text-2xl font-bold mb-3">{promo.title}</h3>
               <p className="text-gray-400 mb-6">{promo.description}</p>
@@ -48,7 +48,7 @@ export default function PromotionsSection() {
                 href={`/promotions/${promo.id}`}
                 className="inline-block text-yellow-400 hover:text-yellow-300 font-bold transition-colors"
               >
-                Learn More →
+                Learn More &rarr;
               </Link>
             </div>
           ))}

@@ -1,0 +1,24 @@
+# Cassanova Casino: Project Rules & Tech Stack
+
+## Core Architecture
+- **Framework**: Next.js 15 (App Router)
+- **Library**: React 19 (Experimental/Latest features)
+- **Database**: MongoDB (via Mongoose or Prisma)
+- **Styling**: Tailwind CSS + Framer Motion (for "Casino" polish)
+- **State Management**: React Server Components (RSC) for data fetching, Server Actions for mutations.
+
+## Coding Standards (React 19 + Next.js 15)
+- **Server Components**: Default to Server Components. Use `'use client'` only for interactive UI (games, buttons, modals).
+- **Server Actions**: Use Server Actions for all form submissions and casino transactions (betting, deposits). No separate `api/` routes unless for external webhooks.
+- **Async Handling**: Use the new React 19 `use()` hook for handling promises in Client Components where applicable.
+- **Form Handling**: Use `useActionState` and `useFormStatus` for betting forms to provide instant feedback.
+
+## Casino-Specific Logic
+- **Precision**: All financial/betting calculations must use high-precision decimals. Never use floating-point math for user balances.
+- **Security**: Validate all bets and balance changes on the server. Never trust the client-side balance for logic.
+- **UI/UX**: The "Cassanova" brand is cutting-edge. Use dark mode, gold/crimson accents, and smooth transitions for a premium feel.
+
+## Instructions for Cursor/Claude
+- **Context Awareness**: Always check `@models` before writing database queries.
+- **Performance**: Use Next.js `cache` and `revalidatePath` strategically to keep user balances and game states updated without over-fetching.
+- **Clean Code**: Extract complex betting logic into `lib/casino-logic.ts` instead of cluttering the Page components.

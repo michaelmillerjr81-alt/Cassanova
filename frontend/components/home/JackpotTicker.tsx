@@ -4,19 +4,18 @@ import { useState, useEffect } from 'react';
 
 export default function JackpotTicker() {
   const [jackpots, setJackpots] = useState([
-    { id: 1, name: 'Mega Moolah', amount: 5234567.89 },
-    { id: 2, name: 'Divine Fortune', amount: 1567890.12 },
-    { id: 3, name: 'Hall of Gods', amount: 987654.32 },
-    { id: 4, name: 'Mega Fortune', amount: 3456789.01 },
+    { id: 1, name: 'Mega Moolah', amount: 5234567 },
+    { id: 2, name: 'Divine Fortune', amount: 1567890 },
+    { id: 3, name: 'Hall of Gods', amount: 987654 },
+    { id: 4, name: 'Mega Fortune', amount: 3456789 },
   ]);
 
-  // Simulate jackpot increases
   useEffect(() => {
     const interval = setInterval(() => {
       setJackpots((prev) =>
         prev.map((jackpot) => ({
           ...jackpot,
-          amount: jackpot.amount + Math.random() * 10,
+          amount: jackpot.amount + Math.floor(Math.random() * 50),
         }))
       );
     }, 1000);
@@ -24,8 +23,8 @@ export default function JackpotTicker() {
     return () => clearInterval(interval);
   }, []);
 
-  const formatAmount = (amount: number) => {
-    return `$${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+  const formatSC = (amount: number) => {
+    return `${amount.toLocaleString()} SC`;
   };
 
   return (
@@ -34,11 +33,11 @@ export default function JackpotTicker() {
         <div className="flex items-center justify-center space-x-12 animate-marquee">
           {jackpots.map((jackpot) => (
             <div key={jackpot.id} className="flex items-center space-x-3 whitespace-nowrap">
-              <span className="text-2xl">💰</span>
+              <span className="text-2xl">&#x2B50;</span>
               <div>
                 <p className="text-sm font-bold text-gray-900">{jackpot.name}</p>
                 <p className="text-2xl font-bold text-gray-900 tabular-nums">
-                  {formatAmount(jackpot.amount)}
+                  {formatSC(jackpot.amount)}
                 </p>
               </div>
             </div>

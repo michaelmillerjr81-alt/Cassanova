@@ -63,9 +63,9 @@ export const api = {
     setup2FA: async (token: string) => {
       const response = await fetch(`${API_BASE_URL}/auth/2fa/setup`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
       });
       return response.json();
@@ -74,9 +74,9 @@ export const api = {
     verify2FA: async (token: string, code: string) => {
       const response = await fetch(`${API_BASE_URL}/auth/2fa/verify`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ token: code }),
       });
@@ -86,9 +86,9 @@ export const api = {
     disable2FA: async (token: string, password: string) => {
       const response = await fetch(`${API_BASE_URL}/auth/2fa/disable`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ password }),
       });
@@ -136,35 +136,55 @@ export const api = {
     },
   },
 
+  // Coin packages endpoints
+  packages: {
+    getAll: async () => {
+      const response = await fetch(`${API_BASE_URL}/packages`);
+      return response.json();
+    },
+
+    purchase: async (token: string, data: { packageId: string; cryptoCurrency: string; cryptoTxHash?: string }) => {
+      const response = await fetch(`${API_BASE_URL}/packages/purchase`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      return response.json();
+    },
+
+    claimDailyBonus: async (token: string) => {
+      const response = await fetch(`${API_BASE_URL}/packages/daily-bonus`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.json();
+    },
+
+    redeem: async (token: string, data: { amount: number; cryptoCurrency: string; walletAddress: string }) => {
+      const response = await fetch(`${API_BASE_URL}/packages/redeem`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      return response.json();
+    },
+  },
+
   // Transactions endpoints
   transactions: {
-    getAll: async (token: string) => {
-      const response = await fetch(`${API_BASE_URL}/transactions`, {
+    getAll: async (token: string, params?: { type?: string; currency?: string }) => {
+      const query = params ? new URLSearchParams(params as Record<string, string>).toString() : '';
+      const response = await fetch(`${API_BASE_URL}/transactions${query ? `?${query}` : ''}`, {
         headers: { Authorization: `Bearer ${token}` },
-      });
-      return response.json();
-    },
-
-    deposit: async (token: string, data: { amount: number; paymentMethod: string }) => {
-      const response = await fetch(`${API_BASE_URL}/transactions/deposit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      return response.json();
-    },
-
-    withdraw: async (token: string, data: { amount: number; paymentMethod: string }) => {
-      const response = await fetch(`${API_BASE_URL}/transactions/withdrawal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
       });
       return response.json();
     },

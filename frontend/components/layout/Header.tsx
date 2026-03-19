@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useAuth } from '@/lib/auth-context';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, isAuthenticated, formatGC, formatSC } = useAuth();
 
   return (
     <header className="bg-gradient-to-r from-gray-900 via-purple-900 to-gray-900 text-white sticky top-0 z-50 shadow-lg">
@@ -13,7 +15,7 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <div className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-              🎰 Cassanova
+              Cassanova
             </div>
           </Link>
 
@@ -21,9 +23,6 @@ export default function Header() {
           <nav className="hidden md:flex items-center space-x-8">
             <Link href="/games" className="hover:text-yellow-400 transition-colors font-medium">
               Games
-            </Link>
-            <Link href="/live-casino" className="hover:text-yellow-400 transition-colors font-medium">
-              Live Casino
             </Link>
             <Link href="/promotions" className="hover:text-yellow-400 transition-colors font-medium">
               Promotions
@@ -33,20 +32,49 @@ export default function Header() {
             </Link>
           </nav>
 
-          {/* Auth Buttons */}
+          {/* Auth / Balance Section */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link
-              href="/login"
-              className="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors font-medium"
-            >
-              Log In
-            </Link>
-            <Link
-              href="/register"
-              className="px-6 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold hover:from-yellow-500 hover:to-yellow-700 transition-all transform hover:scale-105"
-            >
-              Sign Up
-            </Link>
+            {isAuthenticated && user ? (
+              <>
+                {/* Balance Display */}
+                <div className="flex items-center space-x-3 bg-gray-800/60 rounded-lg px-3 py-1.5">
+                  <div className="flex items-center space-x-1">
+                    <span className="text-yellow-400 text-sm font-bold">{formatGC(user.goldCoins)}</span>
+                  </div>
+                  <div className="w-px h-5 bg-gray-600"></div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-green-400 text-sm font-bold">{formatSC(user.sweepCoins)}</span>
+                  </div>
+                </div>
+                <Link
+                  href="/deposit"
+                  className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold text-sm hover:from-yellow-500 hover:to-yellow-700 transition-all"
+                >
+                  Buy GC
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors font-medium text-sm"
+                >
+                  Dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors font-medium"
+                >
+                  Log In
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold hover:from-yellow-500 hover:to-yellow-700 transition-all transform hover:scale-105"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -68,11 +96,14 @@ export default function Header() {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-white/10">
             <nav className="flex flex-col space-y-4">
+              {isAuthenticated && user && (
+                <div className="flex items-center space-x-4 pb-3 border-b border-white/10">
+                  <span className="text-yellow-400 font-bold text-sm">{formatGC(user.goldCoins)}</span>
+                  <span className="text-green-400 font-bold text-sm">{formatSC(user.sweepCoins)}</span>
+                </div>
+              )}
               <Link href="/games" className="hover:text-yellow-400 transition-colors">
                 Games
-              </Link>
-              <Link href="/live-casino" className="hover:text-yellow-400 transition-colors">
-                Live Casino
               </Link>
               <Link href="/promotions" className="hover:text-yellow-400 transition-colors">
                 Promotions
@@ -80,15 +111,31 @@ export default function Header() {
               <Link href="/vip" className="hover:text-yellow-400 transition-colors">
                 VIP
               </Link>
-              <Link href="/login" className="hover:text-yellow-400 transition-colors">
-                Log In
-              </Link>
-              <Link
-                href="/register"
-                className="px-6 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold text-center"
-              >
-                Sign Up
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link href="/dashboard" className="hover:text-yellow-400 transition-colors">
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/deposit"
+                    className="px-6 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold text-center"
+                  >
+                    Buy Gold Coins
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="hover:text-yellow-400 transition-colors">
+                    Log In
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="px-6 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold text-center"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </nav>
           </div>
         )}

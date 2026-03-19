@@ -123,8 +123,8 @@ export default function PromotionDetailPage() {
                     {promotion.bonusPercentage}%
                   </div>
                   <div className="text-gray-300">Bonus Percentage</div>
-                  {promotion.maxBonus && (
-                    <div className="text-sm text-gray-400 mt-1">Up to ${promotion.maxBonus}</div>
+                  {promotion.maxBonusSC && (
+                    <div className="text-sm text-gray-400 mt-1">Up to {promotion.maxBonusSC} SC</div>
                   )}
                 </div>
               )}
@@ -153,10 +153,10 @@ export default function PromotionDetailPage() {
               <div className="bg-gray-700/30 rounded-xl p-6">
                 <h3 className="text-white font-bold text-lg mb-4">Eligibility</h3>
                 <div className="space-y-3">
-                  {promotion.minDeposit && (
+                  {promotion.minGCPurchase && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Min Deposit:</span>
-                      <span className="text-white font-semibold">${promotion.minDeposit}</span>
+                      <span className="text-gray-400">Min GC Purchase:</span>
+                      <span className="text-white font-semibold">{promotion.minGCPurchase.toLocaleString()} GC</span>
                     </div>
                   )}
                   {promotion.eligibleVipLevels.length > 0 && (
