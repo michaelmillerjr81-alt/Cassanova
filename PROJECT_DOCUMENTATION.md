@@ -1,24 +1,39 @@
-# Cassanova Casino - Project Documentation
+# Cassanova Casino — Project Documentation
 
 ## Overview
-Cassanova is a modern, full-stack online casino website built with the following technologies:
+
+Cassanova is a sweepstakes casino platform powered by cryptocurrency. It uses a dual-currency model: **Gold Coins (GC)** for entertainment play and **Sweep Coins (SC)** that are given free and redeemable for crypto prizes. All purchases and redemptions use cryptocurrency.
 
 ### Frontend
 - **Framework**: Next.js 15 with React 19
-- **Styling**: Tailwind CSS
-- **Language**: TypeScript
-- **Features**: 
-  - Responsive design for all devices
-  - Modern UI with animations
-  - Server-side rendering (SSR)
-  - Client-side interactivity
+- **Styling**: Tailwind CSS 4
+- **Language**: TypeScript 5
+- **Features**: Server-side rendering, responsive design, client-side interactivity
 
 ### Backend
-- **Framework**: Node.js with Express
-- **Database**: MongoDB with Mongoose ODM
+- **Framework**: Node.js 20+ with Express 5
+- **Database**: MongoDB 8 with Mongoose ODM
 - **Authentication**: JWT (JSON Web Tokens)
 - **Password Hashing**: bcryptjs
-- **Language**: TypeScript
+- **Language**: TypeScript 5
+
+## Dual Currency Model
+
+### Gold Coins (GC)
+- Purchased with cryptocurrency (BTC, ETH, USDT, SOL, DOGE, LTC)
+- Used for entertainment play only
+- No monetary value; cannot be redeemed
+
+### Sweep Coins (SC)
+- Given free with every GC purchase and daily bonuses
+- Used for prize-eligible play
+- Redeemable for cryptocurrency prizes (minimum 100 SC, KYC required)
+- Cannot be purchased directly
+
+### Daily Bonus
+- 1,000 GC + 0.30 SC every 24 hours
+- Available to all registered users
+- Tracked via `lastDailyBonus` field on the User model
 
 ## Project Structure
 
@@ -26,377 +41,226 @@ Cassanova is a modern, full-stack online casino website built with the following
 Cassanova/
 ├── frontend/                 # Next.js frontend application
 │   ├── app/                 # Next.js 15 app directory
-│   │   ├── layout.tsx       # Root layout with Header & Footer
+│   │   ├── layout.tsx       # Root layout with AuthProvider
 │   │   ├── page.tsx         # Homepage
-│   │   └── globals.css      # Global styles
-│   ├── components/          # React components
-│   │   ├── layout/          # Layout components (Header, Footer)
-│   │   └── home/            # Homepage components
-│   └── package.json
+│   │   ├── dashboard/       # User dashboard (GC/SC balances, daily bonus, transactions)
+│   │   ├── deposit/         # Buy Gold Coins page
+│   │   ├── withdraw/        # Redeem Sweep Coins page
+│   │   ├── games/[slug]/    # Game detail pages with GC/SC play toggle
+│   │   ├── promotions/[slug]/ # Promotion detail pages
+│   │   └── globals.css
+│   ├── components/
+│   │   ├── layout/          # Header (dual balance display), Footer (crypto logos, disclaimer)
+│   │   └── home/            # HeroBanner, JackpotTicker, PromotionsSection
+│   ├── lib/
+│   │   ├── api.ts           # API client with packages, transactions endpoints
+│   │   └── auth-context.tsx # Auth context with formatGC/formatSC helpers
+│   └── types/index.ts       # TypeScript interfaces (User, Transaction, CoinPackage, etc.)
 │
-├── backend/                 # Node.js backend API
-│   ├── src/
-│   │   ├── server.ts        # Express server setup
-│   │   ├── models/          # Mongoose models
-│   │   │   ├── User.ts
-│   │   │   ├── Game.ts
-│   │   │   ├── Promotion.ts
-│   │   │   └── Transaction.ts
-│   │   ├── routes/          # API routes
-│   │   ├── controllers/     # Route controllers
-│   │   └── middleware/      # Auth middleware
-│   ├── tsconfig.json
-│   └── package.json
+├── backend/
+│   └── src/
+│       ├── server.ts        # Express server setup
+│       ├── seed.ts          # Coin package seed script
+│       ├── models/
+│       │   ├── User.ts          # goldCoins, sweepCoins, bonusSweepCoins, cryptoAddresses
+│       │   ├── Game.ts          # Game catalog
+│       │   ├── CoinPackage.ts   # Purchasable GC bundles with crypto prices
+│       │   ├── Promotion.ts     # GC/SC bonus promotions
+│       │   └── Transaction.ts   # Dual-currency transaction ledger
+│       ├── routes/
+│       │   ├── coinpackage.routes.ts  # /api/packages (list, purchase, daily-bonus, redeem)
+│       │   ├── transaction.routes.ts  # /api/transactions (history with filters)
+│       │   └── ...
+│       ├── controllers/
+│       │   ├── coinpackage.controller.ts  # getAllPackages, createPackage
+│       │   ├── transaction.controller.ts  # purchaseGoldCoins, redeemSweepCoins, claimDailyBonus
+│       │   └── ...
+│       └── middleware/
 │
-└── README.md                # Original blueprint
+└── docs/
 ```
 
-## Features Implemented
+## Database Models
 
-### User Pages
+### User Model
+| Field | Type | Description |
+|-------|------|-------------|
+| username | String | Unique username |
+| email | String | Unique email |
+| password | String | bcrypt-hashed password |
+| goldCoins | Number | GC balance (default 0, min 0) |
+| sweepCoins | Number | SC balance (default 0, min 0) |
+| bonusSweepCoins | Number | Bonus SC balance (default 0, min 0) |
+| lastDailyBonus | Date | Timestamp of last daily bonus claim |
+| cryptoAddresses | Array | Saved crypto withdrawal addresses |
+| vipLevel | String | bronze / silver / gold / platinum |
+| kycStatus | String | pending / submitted / verified / rejected |
+| responsibleGaming.purchaseLimit | Object | daily / weekly / monthly limits |
+| twoFactorEnabled | Boolean | Whether 2FA is active |
 
-✅ **Login Page** (`/login`)
-- Email and password authentication
-- Remember me functionality
-- Forgot password link
-- Error handling and validation
-- Redirect to dashboard on success
-- Link to registration page
+### CoinPackage Model
+| Field | Type | Description |
+|-------|------|-------------|
+| name | String | Display name |
+| slug | String | URL-safe identifier (unique) |
+| goldCoins | Number | GC amount in package |
+| bonusSweepCoins | Number | Free SC included |
+| priceUSDT | Number | Reference price in USDT |
+| cryptoPrices | Array | `{ currency, amount }` per crypto |
+| isPopular | Boolean | Highlighted in UI |
+| isActive | Boolean | Available for purchase |
+| discount | Number | Discount percentage (0-100) |
+| sortOrder | Number | Display order |
 
-✅ **Register Page** (`/register`)
-- Complete registration form with:
-  - First name and last name
-  - Username and email
-  - Date of birth validation
-  - Password and confirm password
-  - Terms and conditions acceptance
-- Form validation and error messages
-- Redirect to login after successful registration
-- Link to login page for existing users
+### Transaction Model
+| Field | Type | Description |
+|-------|------|-------------|
+| userId | ObjectId | Reference to User |
+| type | String | gc_purchase, sc_redemption, gc_bet, gc_win, sc_bet, sc_win, sc_bonus, daily_bonus |
+| currency | String | GC or SC |
+| amount | Number | Transaction amount |
+| status | String | pending / completed / failed / cancelled |
+| cryptoCurrency | String | BTC, ETH, USDT, SOL, DOGE, LTC |
+| cryptoAmount | Number | Amount in crypto |
+| cryptoTxHash | String | Blockchain transaction hash |
+| walletAddress | String | Crypto wallet address |
+| packageId | ObjectId | Reference to CoinPackage |
+| gcBefore / gcAfter | Number | GC balance snapshot |
+| scBefore / scAfter | Number | SC balance snapshot |
 
-✅ **User Dashboard** (`/dashboard`)
-- Account overview with:
-  - Current balance display
-  - Bonus balance display
-  - VIP level badge
-  - KYC status indicator
-- Quick action buttons for:
-  - Making deposits
-  - Requesting withdrawals
-  - Viewing promotions
-- Recent transactions table showing:
-  - Transaction type (deposit, withdrawal, bet, win)
-  - Amount
-  - Status (completed, pending, failed)
-  - Date and description
-- Logout functionality
+### Promotion Model
+| Field | Type | Description |
+|-------|------|-------------|
+| title | String | Promotion title |
+| slug | String | URL-safe identifier |
+| type | String | welcome-bonus, purchase-bonus, free-sc, daily-bonus, vip-bonus |
+| bonusGoldCoins | Number | GC bonus amount |
+| bonusSweepCoins | Number | SC bonus amount |
+| bonusPercentage | Number | Percentage bonus on purchase |
+| minGCPurchase | Number | Minimum GC purchase to qualify |
+| maxBonusSC | Number | Maximum SC bonus cap |
+| wageringRequirement | Number | Wagering multiplier |
 
-✅ **Deposit Page** (`/deposit`)
-- Multiple payment methods:
-  - Credit/Debit Card
-  - Cryptocurrency
-  - Bank Transfer
-  - E-Wallet
-- Amount input with validation
-- Quick amount selection buttons ($25, $50, $100, $500)
-- Min/max deposit limits per method
-- Current balance display
-- Instant deposit processing
-- Secure payment information
-- Redirect to dashboard after successful deposit
+### Game Model
+| Field | Type | Description |
+|-------|------|-------------|
+| title | String | Game title |
+| slug | String | URL-safe identifier |
+| provider | String | Game provider name |
+| category | String | slots, table-games, live-casino, etc. |
+| rtp | Number | Return to Player percentage |
+| volatility | String | low / medium / high |
+| minBet / maxBet | Number | Bet range (in SC base units) |
+| jackpotAmount | Number | Current jackpot (in SC) |
 
-✅ **Withdrawal Page** (`/withdraw`)
-- Payment method selection
-- Amount input with validation
-- Quick amount selection buttons ($100, $250, $500, $1000)
-- KYC verification requirement
-- Balance validation
-- Min/max withdrawal limits
-- Available balance display
-- Processing time information
-- Secure withdrawal processing
+## API Endpoints
 
-✅ **Game Detail Page** (`/games/[slug]`)
-- Dynamic game pages based on slug
-- Game information display:
-  - High-quality game thumbnail
-  - Game title and provider
-  - Category classification
-  - Detailed description
-- Game statistics:
-  - RTP (Return to Player) percentage
-  - Volatility level (low, medium, high)
-  - Min and max bet amounts
-  - Jackpot information (if applicable)
-- Play options:
-  - Play Now button (requires login)
-  - Try Demo button (if available)
-- Game features list
-- Similar games recommendations
-- Breadcrumb navigation
+### Coin Packages (`/api/packages`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/` | No | List all active packages |
+| POST | `/` | Yes | Create package (admin) |
+| POST | `/purchase` | Yes | Purchase GC with crypto |
+| POST | `/daily-bonus` | Yes | Claim daily bonus |
+| POST | `/redeem` | Yes | Redeem SC for crypto |
 
-✅ **Promotion Detail Page** (`/promotions/[slug]`)
-- Dynamic promotion pages based on slug
-- Promotion details display:
-  - Promotional banner image
-  - Title and description
-  - Promotion type icon
-- Bonus information:
-  - Bonus percentage
-  - Maximum bonus amount
-  - Free spins count (if applicable)
-  - Wagering requirement
-- Eligibility criteria:
-  - Minimum deposit requirement
-  - VIP level restrictions
-  - Promo code (if required)
-  - User eligibility status
-- Validity period:
-  - Valid from date
-  - Valid until date
-  - Active status indicator
-- Claim promotion button
-- Terms and conditions
-- Important information section
-- Breadcrumb navigation
+### Transactions (`/api/transactions`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/` | Yes | Get transaction history (filter by `type`, `status`, `currency`) |
 
-### Homepage (Following Blueprint)
-✅ **Header**
-- Casino logo
-- Main navigation (Games, Live Casino, Promotions, VIP)
-- Log In and Sign Up buttons
-- Responsive mobile menu
+### Authentication (`/api/auth`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/register` | No | Register new user |
+| POST | `/login` | No | Login (supports 2FA) |
+| GET | `/verify/:token` | No | Email verification |
+| POST | `/forgot-password` | No | Request password reset |
+| POST | `/reset-password` | No | Reset password |
+| POST | `/2fa/setup` | Yes | Setup 2FA |
+| POST | `/2fa/verify` | Yes | Enable 2FA |
+| POST | `/2fa/disable` | Yes | Disable 2FA |
 
-✅ **Hero Banner**
-- Dynamic gradient background with animations
-- Welcome bonus announcement (200% up to $500 + 100 Free Spins)
-- Prominent "Join Now" CTA button
-- Feature badges (Instant Deposits, 1000+ Games, Secure, VIP Rewards)
+### Games (`/api/games`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/` | No | List games (with filters) |
+| GET | `/jackpots` | No | Get jackpot games |
+| GET | `/:slug` | No | Get game details |
+| POST | `/` | Yes | Create game (admin) |
 
-✅ **Game Lobby Preview**
-- Tabs for Popular, New Games, and Jackpots
-- Game grid with hover effects
-- Game thumbnails with Play Now buttons
-- "View All Games" CTA
+### Users (`/api/users`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/profile` | Yes | Get user profile |
+| PUT | `/profile` | Yes | Update profile |
+| PUT | `/responsible-gaming` | Yes | Update gaming limits |
+| POST | `/favorites` | Yes | Toggle favorite game |
+| POST | `/kyc/upload` | Yes | Upload KYC document |
+| GET | `/kyc/documents` | Yes | Get KYC documents |
 
-✅ **Jackpot Ticker**
-- Live updating jackpot amounts
-- Full-width banner with gradient background
-- Multiple jackpot games displayed
+### Promotions (`/api/promotions`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/` | No | List promotions |
+| GET | `/:slug` | No | Get promotion details |
+| POST | `/` | Yes | Create promotion (admin) |
 
-✅ **Promotions Section**
-- Cards for key promotions (Weekly Cashback, Friday Free Spins, Reload Bonus)
-- Icon-based visual design
-- "Learn More" links for each promotion
+## Frontend Pages
 
-✅ **Why Choose Us Section**
-- 4 key benefits with icons
-- Fast Payouts
-- 24/7 Support
-- Fully Licensed
-- Huge Game Selection
+### Public
+- **`/`** — Homepage: hero banner (GC + SC offer), game lobby, SC jackpot ticker, promotions
+- **`/login`** — Login with optional 2FA
+- **`/register`** — Registration form
+- **`/games/[slug]`** — Game details with GC/SC play mode toggle, bet amounts in both currencies
+- **`/promotions/[slug]`** — Promotion details with GC/SC bonus terms
 
-✅ **Footer**
-- Multi-column layout
-- Quick Links, Help & Support, Legal sections
-- Payment method logos
-- Licensing information
-- Responsible gaming notice
+### Protected
+- **`/dashboard`** — GC balance, SC balance, VIP level, daily bonus claim, transaction history with type/currency filters
+- **`/deposit`** — Buy Gold Coins: select package, choose crypto, submit purchase
+- **`/withdraw`** — Redeem Sweep Coins: enter SC amount, choose crypto, provide wallet address (KYC required)
+- **`/favorites`** — Manage favorite games
+- **`/kyc`** — Upload verification documents (required for SC redemptions)
+- **`/settings`** — Security settings, 2FA management
 
-### Backend API
+## Seed Data
 
-✅ **User Management**
-- Registration with email verification
-- Login with JWT authentication
-- User profile management
-- Responsible gaming settings
-- Favorite games management
+Run `npm run seed` in the `backend/` directory to populate coin packages:
 
-✅ **Game Management**
-- Game catalog with categories
-- Search and filter functionality
-- Game details and metadata
-- Jackpot games tracking
+| Package | Gold Coins | Free SC | USDT Price | Discount |
+|---------|-----------|---------|-----------|----------|
+| Starter Pack | 10,000 | 1 | $4.99 | — |
+| Bronze Bundle | 50,000 | 5 | $19.99 | — |
+| Silver Bundle | 150,000 | 18 | $49.99 | 10% |
+| Gold Bundle | 500,000 | 75 | $99.99 | 15% |
+| Platinum Bundle | 1,500,000 | 250 | $249.99 | 20% |
+| Diamond Bundle | 5,000,000 | 1,000 | $499.99 | 25% |
 
-✅ **Promotions**
-- Promotion listing with filters
-- Active/inactive status
-- VIP level eligibility
-- Terms and conditions
-
-✅ **Transactions**
-- Deposit processing
-- Withdrawal requests with KYC checks
-- Transaction history
-- Balance management
-
-### Database Models
-
-1. **User Model**
-   - Authentication details
-   - Profile information
-   - Balance and bonus balance
-   - KYC status
-   - VIP level
-   - Responsible gaming settings
-   - Favorite games
-
-2. **Game Model**
-   - Game information
-   - Provider details
-   - Categories and features
-   - RTP and volatility
-   - Jackpot information
-
-3. **Promotion Model**
-   - Promotion details
-   - Bonus terms
-   - Validity dates
-   - Eligibility criteria
-
-4. **Transaction Model**
-   - Transaction type (deposit, withdrawal, bet, win)
-   - Amount and status
-   - Payment method
-   - Balance tracking
+Each package includes computed crypto prices for BTC, ETH, USDT, SOL, DOGE, and LTC.
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 20+ 
-- MongoDB (local or cloud instance)
+- Node.js 20+
+- MongoDB (local or Atlas)
 - npm or yarn
 
 ### Backend Setup
-
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Create a `.env` file based on `.env.example`:
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Update environment variables:
-   ```env
-   PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/cassanova
-   JWT_SECRET=your-secure-secret-key
-   NODE_ENV=development
-   ```
-
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-The backend API will be running at `http://localhost:5000`
+```bash
+cd backend
+npm install
+cp .env.example .env    # Edit with your MongoDB URI and JWT secret
+npm run seed            # Populate coin packages
+npm run dev             # Start at http://localhost:5000
+```
 
 ### Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev             # Start at http://localhost:3000
+```
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
+## Legal Disclaimer
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-The frontend will be running at `http://localhost:3000`
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-- `GET /api/auth/verify/:token` - Verify email
-
-### Games
-- `GET /api/games` - Get all games (with filters)
-- `GET /api/games/jackpots` - Get jackpot games
-- `GET /api/games/:slug` - Get game by slug
-- `POST /api/games` - Create game (admin)
-
-### Users
-- `GET /api/users/profile` - Get user profile
-- `PUT /api/users/profile` - Update profile
-- `PUT /api/users/responsible-gaming` - Update responsible gaming settings
-- `POST /api/users/favorites` - Toggle favorite game
-
-### Promotions
-- `GET /api/promotions` - Get all promotions
-- `GET /api/promotions/:slug` - Get promotion by slug
-- `POST /api/promotions` - Create promotion (admin)
-
-### Transactions
-- `GET /api/transactions` - Get user transactions
-- `POST /api/transactions/deposit` - Create deposit
-- `POST /api/transactions/withdrawal` - Create withdrawal
-
-## Core Principles (From Blueprint)
-
-✅ **User-Centric Design**
-- Intuitive navigation
-- Responsive design for all devices
-- Modern, visually appealing interface
-
-✅ **Security & Trust**
-- JWT authentication
-- Password hashing with bcryptjs
-- Secure transaction handling
-- KYC verification for withdrawals
-
-✅ **Responsible Gaming**
-- Deposit limits (daily, weekly, monthly)
-- Loss limits
-- Session time limits
-- Self-exclusion options
-
-✅ **Performance**
-- Next.js optimizations
-- Efficient API design
-- Database indexing with MongoDB
-
-## Future Enhancements
-
-### Short Term
-- [x] Add user authentication pages (login, register) ✅ **COMPLETED**
-- [x] Create game detail pages ✅ **COMPLETED**
-- [x] Implement user dashboard ✅ **COMPLETED**
-- [x] Add deposit/withdrawal pages ✅ **COMPLETED**
-- [x] Create promotions detail pages ✅ **COMPLETED**
-
-### Medium Term
-- [ ] Integrate real payment providers
-- [ ] Add email verification system
-- [ ] Implement KYC document upload
-- [ ] Add live chat support
-- [ ] Create admin dashboard
-
-### Long Term
-- [ ] Integrate real game providers
-- [ ] Add live dealer games
-- [ ] Implement real-time notifications
-- [ ] Add progressive jackpot tracking
-- [ ] Multi-language support
-- [ ] Mobile app development
-
-## License
-This is a demo project for educational purposes.
-
-## Contributing
-This project follows the blueprint outlined in README.md. All features are implemented according to the specifications.
+This platform operates under a sweepstakes model. Gold Coins are purchased for entertainment and carry no monetary value. Sweep Coins are provided free of charge with Gold Coin purchases and daily bonuses, and may be redeemed for prizes where permitted by law. No purchase is necessary to obtain Sweep Coins. Operators must comply with all applicable laws and regulations.
