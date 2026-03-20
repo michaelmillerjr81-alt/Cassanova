@@ -1,39 +1,48 @@
 import { Router, Request, Response } from 'express';
 import Transaction from '../models/Transaction';
 import User from '../models/User';
-import { verifyIpnSignature } from '../services/nowpayments.service';
+import { verifyWebhookSignature } from '../services/coinbase-commerce.service';
 
 const router = Router();
 
 /**
- * NOWPayments sends IPN (Instant Payment Notification) POST callbacks
- * when payment status changes.
+ * Coinbase Commerce sends webhook POST callbacks when charge status changes.
  *
- * Statuses: waiting, confirming, confirmed, sending,
- *           partially_paid, finished, failed, refunded, expired
+ * Event types: charge:created, charge:pending, charge:confirmed,
+ *              charge:failed, charge:delayed, charge:resolved
  *
- * We credit coins only on "finished".
+ * We credit coins on "charge:confirmed" or "charge:resolved".
+ * Raw body is needed for HMAC signature verification.
  */
-router.post('/nowpayments', async (req: Request, res: Response) => {
+router.post('/coinbase', async (req: Request, res: Response) => {
   try {
-    const signature = req.headers['x-nowpayments-sig'] as string | undefined;
+    const signature = req.headers['x-cc-webhook-signature'] as string | undefined;
+    const rawBody = JSON.stringify(req.body);
 
-    if (!verifyIpnSignature(req.body, signature || '')) {
-      console.warn('NOWPayments IPN: invalid signature');
+    if (signature && !verifyWebhookSignature(rawBody, signature)) {
+      console.warn('Coinbase Commerce webhook: invalid signature');
       return res.status(400).json({ message: 'Invalid signature' });
     }
 
-    const {
-      order_id: orderId,
-      payment_status: status,
-      pay_amount: payAmount,
-      pay_currency: payCurrency,
-      payment_id: paymentId,
-    } = req.body;
+    const event = req.body?.event;
+    if (!event) {
+      return res.status(400).json({ message: 'Missing event' });
+    }
+
+    const eventType: string = event.type;
+    const chargeData = event.data;
+    const orderId = chargeData?.metadata?.order_id;
+    const chargeCode: string = chargeData?.code || '';
+    const chargeId: string = chargeData?.id || '';
+
+    if (!orderId) {
+      console.warn('Coinbase Commerce webhook: missing order_id in metadata');
+      return res.status(400).json({ message: 'Missing order_id' });
+    }
 
     const transaction = await Transaction.findById(orderId);
     if (!transaction) {
-      console.warn(`NOWPayments IPN: transaction ${orderId} not found`);
+      console.warn(`Coinbase Commerce webhook: transaction ${orderId} not found`);
       return res.status(404).json({ message: 'Transaction not found' });
     }
 
@@ -41,11 +50,10 @@ router.post('/nowpayments', async (req: Request, res: Response) => {
       return res.json({ message: 'Already processed' });
     }
 
-    if (payAmount) transaction.cryptoAmount = parseFloat(payAmount);
-    if (payCurrency) transaction.cryptoCurrency = payCurrency;
-    if (paymentId) transaction.coingateOrderId = paymentId;
+    if (chargeCode) transaction.chargeCode = chargeCode;
+    if (chargeId) transaction.chargeId = chargeId;
 
-    if (status === 'finished' || status === 'confirmed') {
+    if (eventType === 'charge:confirmed' || eventType === 'charge:resolved') {
       transaction.status = 'completed';
       await transaction.save();
 
@@ -56,20 +64,20 @@ router.post('/nowpayments', async (req: Request, res: Response) => {
         await user.save();
       }
 
-      console.log(`NOWPayments: order ${orderId} ${status} — credited user ${transaction.userId}`);
-    } else if (status === 'failed' || status === 'expired' || status === 'refunded') {
+      console.log(`Coinbase Commerce: charge ${chargeCode} ${eventType} — credited user ${transaction.userId}`);
+    } else if (eventType === 'charge:failed') {
       transaction.status = 'failed';
       await transaction.save();
-      console.log(`NOWPayments: order ${orderId} ${status}`);
+      console.log(`Coinbase Commerce: charge ${chargeCode} failed`);
     } else {
       await transaction.save();
-      console.log(`NOWPayments: order ${orderId} status=${status} (no action)`);
+      console.log(`Coinbase Commerce: charge ${chargeCode} ${eventType} (no action)`);
     }
 
     res.json({ message: 'OK' });
   } catch (error) {
-    console.error('NOWPayments IPN error:', error);
-    res.status(500).json({ message: 'IPN processing failed' });
+    console.error('Coinbase Commerce webhook error:', error);
+    res.status(500).json({ message: 'Webhook processing failed' });
   }
 });
 

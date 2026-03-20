@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 import Transaction from '../models/Transaction';
 import User from '../models/User';
 import CoinPackage from '../models/CoinPackage';
-import * as payments from '../services/nowpayments.service';
+import * as payments from '../services/coinbase-commerce.service';
 
 const DAILY_BONUS_SC = 0.3;
 const DAILY_BONUS_GC = 1000;
@@ -73,23 +73,25 @@ export const purchaseGoldCoins = async (req: AuthRequest, res: Response) => {
 
     const txnId = (transaction._id as mongoose.Types.ObjectId).toString();
 
+    console.log('Coinbase Commerce configured:', payments.isConfigured(), '| Key present:', !!process.env.COINBASE_COMMERCE_API_KEY);
+
     if (payments.isConfigured()) {
-      const invoice = await payments.createInvoice({
+      const charge = await payments.createCharge({
+        name: coinPackage.name,
+        description: `${coinPackage.goldCoins.toLocaleString()} Gold Coins + ${coinPackage.bonusSweepCoins} FREE Sweep Coins`,
+        amountUsd: coinPackage.priceUSDT,
         orderId: txnId,
-        priceAmount: coinPackage.priceUSDT,
-        priceCurrency: 'usd',
-        orderDescription: `${coinPackage.goldCoins.toLocaleString()} Gold Coins + ${coinPackage.bonusSweepCoins} FREE Sweep Coins`,
-        ipnCallbackUrl: `${BACKEND_URL}/api/webhooks/nowpayments`,
-        successUrl: `${FRONTEND_URL}/payment/success?txn=${txnId}`,
+        redirectUrl: `${FRONTEND_URL}/payment/success?txn=${txnId}`,
         cancelUrl: `${FRONTEND_URL}/payment/cancel?txn=${txnId}`,
       });
 
-      transaction.coingateOrderId = parseInt(invoice.id, 10) || 0;
+      transaction.chargeCode = charge.code;
+      transaction.chargeId = charge.id;
       await transaction.save();
 
       return res.status(201).json({
-        message: 'Payment invoice created',
-        paymentUrl: invoice.invoice_url,
+        message: 'Payment charge created',
+        paymentUrl: charge.hosted_url,
         transactionId: txnId,
       });
     }
@@ -163,23 +165,8 @@ export const redeemSweepCoins = async (req: AuthRequest, res: Response) => {
 
     await transaction.save();
 
-    if (payments.isConfigured()) {
-      try {
-        const usdAmount = amount * SC_TO_USD_RATE;
-        const payout = await payments.createPayout({
-          amount: usdAmount,
-          currency: cryptoCurrency.toUpperCase(),
-          address: walletAddress,
-          description: `Cassanova SC Redemption - ${amount} SC`,
-          platformId: (transaction._id as mongoose.Types.ObjectId).toString(),
-        });
-
-        transaction.coingatePayoutId = parseInt(payout.id, 10) || 0;
-        await transaction.save();
-      } catch (payoutError) {
-        console.error('NOWPayments payout creation failed:', payoutError);
-      }
-    }
+    // Coinbase Commerce handles inbound payments only — outbound
+    // payouts are processed via the admin panel or a separate service.
 
     res.status(201).json({
       message: 'Redemption request submitted — payout processing',
