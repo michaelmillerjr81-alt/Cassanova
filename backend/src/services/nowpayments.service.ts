@@ -1,19 +1,24 @@
 import crypto from 'crypto';
 
-const NP_API_KEY = process.env.NOWPAYMENTS_API_KEY || '';
-const NP_IPN_SECRET = process.env.NOWPAYMENTS_IPN_SECRET || '';
-const NP_ENV = process.env.NOWPAYMENTS_ENV || 'sandbox';
+function env() {
+  return {
+    apiKey: process.env.NOWPAYMENTS_API_KEY || '',
+    ipnSecret: process.env.NOWPAYMENTS_IPN_SECRET || '',
+    env: process.env.NOWPAYMENTS_ENV || 'sandbox',
+  };
+}
 
-const BASE_URL =
-  NP_ENV === 'live'
+function baseUrl(): string {
+  return env().env === 'live'
     ? 'https://api.nowpayments.io/v1'
     : 'https://api-sandbox.nowpayments.io/v1';
+}
 
 async function npRequest<T = Record<string, unknown>>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const response = await fetch(`${baseUrl()}${path}`, {
     ...options,
     headers: {
-      'x-api-key': NP_API_KEY,
+      'x-api-key': env().apiKey,
       'Content-Type': 'application/json',
       ...options.headers,
     },
@@ -72,13 +77,8 @@ export async function getPaymentStatus(paymentId: number): Promise<Record<string
 
 /* ── Payouts ── */
 
-const PAYOUT_BASE =
-  NP_ENV === 'live'
-    ? 'https://api.nowpayments.io/v1'
-    : 'https://api-sandbox.nowpayments.io/v1';
-
 async function getPayoutAuthToken(): Promise<string> {
-  const response = await fetch(`${PAYOUT_BASE}/auth`, {
+  const response = await fetch(`${baseUrl()}/auth`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -115,10 +115,10 @@ export interface NowPaymentsPayout {
 export async function createPayout(params: CreatePayoutParams): Promise<NowPaymentsPayout> {
   const token = await getPayoutAuthToken();
 
-  const response = await fetch(`${PAYOUT_BASE}/payout`, {
+  const response = await fetch(`${baseUrl()}/payout`, {
     method: 'POST',
     headers: {
-      'x-api-key': NP_API_KEY,
+      'x-api-key': env().apiKey,
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
@@ -146,7 +146,8 @@ export async function createPayout(params: CreatePayoutParams): Promise<NowPayme
 /* ── IPN Signature Verification ── */
 
 export function verifyIpnSignature(body: Record<string, unknown>, signature: string): boolean {
-  if (!NP_IPN_SECRET) return true;
+  const secret = env().ipnSecret;
+  if (!secret) return true;
 
   const sorted = Object.keys(body)
     .sort()
@@ -156,7 +157,7 @@ export function verifyIpnSignature(body: Record<string, unknown>, signature: str
     }, {});
 
   const hmac = crypto
-    .createHmac('sha512', NP_IPN_SECRET)
+    .createHmac('sha512', secret)
     .update(JSON.stringify(sorted))
     .digest('hex');
 
@@ -164,5 +165,5 @@ export function verifyIpnSignature(body: Record<string, unknown>, signature: str
 }
 
 export function isConfigured(): boolean {
-  return !!NP_API_KEY;
+  return !!env().apiKey;
 }
